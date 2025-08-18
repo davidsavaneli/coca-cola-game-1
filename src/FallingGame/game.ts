@@ -25,6 +25,15 @@ export class Game {
     gameOver: boolean;
   }) => void;
 
+  // Internal animation state
+  private _rafId: number | null = null;
+  private _lastTime = 0;
+  private _resizeAttached = false;
+  private _onResize = () => {
+    this.setupCanvas();
+    this.draw();
+  };
+
   constructor(
     canvas: HTMLCanvasElement,
     config: GameConfig,
@@ -65,6 +74,55 @@ export class Game {
 
     this.setupCanvas();
     this.resetGame();
+  }
+
+  // Start the internal animation loop
+  start() {
+    if (this._rafId != null) return; // already running
+    this.isPaused = false;
+
+    if (!this._resizeAttached) {
+      window.addEventListener("resize", this._onResize);
+      this._resizeAttached = true;
+    }
+
+    this._lastTime = performance.now();
+    const step = (time: number) => {
+      if (this.isPaused || this.gameOver) {
+        this._rafId = null;
+        return;
+      }
+      const delta = time - this._lastTime;
+      this._lastTime = time;
+      this.update(delta);
+      this.draw();
+      this._rafId = requestAnimationFrame(step);
+    };
+    this._rafId = requestAnimationFrame(step);
+  }
+
+  // Stop the loop completely
+  stop() {
+    if (this._rafId != null) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = null;
+    }
+    if (this._resizeAttached) {
+      window.removeEventListener("resize", this._onResize);
+      this._resizeAttached = false;
+    }
+  }
+
+  // Pause without cancelling next frame
+  pause() {
+    this.isPaused = true;
+  }
+
+  // Resume the loop
+  resume() {
+    if (!this.isPaused) return;
+    this.isPaused = false;
+    this.start();
   }
 
   spawnFloatingText(text: string, x: number, y: number) {
