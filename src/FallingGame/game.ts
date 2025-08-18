@@ -9,12 +9,11 @@ export class Game {
   score: number;
   timer: number;
   isPaused: boolean;
-  gameOver: boolean;
+  isGameOver: boolean; // renamed from gameOver for clarity
   gameSpeed: number;
   spawnTimer: number;
   config: GameConfig;
   basketImage: HTMLImageElement;
-  preloadedImages: Map<string, HTMLImageElement>;
 
   canvasCssWidth: number = 0;
   canvasCssHeight: number = 0;
@@ -26,12 +25,39 @@ export class Game {
   }) => void;
 
   // Internal animation state
-  private _rafId: number | null = null;
-  private _lastTime = 0;
-  private _resizeAttached = false;
-  private _onResize = () => {
+  rafId: number | null = null;
+  lastTime = 0;
+
+  // Internal event handlers/flags
+  // Removed activeTouchId; we always use the first touch
+
+  handleResize = () => {
+    // Pure resize handler: just size canvas and draw
     this.setupCanvas();
     this.draw();
+  };
+
+  // Touch handlers attached to the canvas
+  handleTouchStart = (e: TouchEvent) => {
+    if (this.isPaused || this.isGameOver) return;
+    if (e.touches.length === 0) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const x = e.touches[0].clientX - rect.left;
+    this.handleDrag(x);
+    e.preventDefault();
+  };
+
+  handleTouchMove = (e: TouchEvent) => {
+    if (e.touches.length === 0) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const x = e.touches[0].clientX - rect.left;
+    this.handleDrag(x);
+    e.preventDefault();
+  };
+
+  handleTouchEnd = (e: TouchEvent) => {
+    // Nothing to reset now; prevent default to avoid ghost clicks/scroll
+    e.preventDefault();
   };
 
   constructor(
@@ -41,8 +67,7 @@ export class Game {
       score: number;
       timer: number;
       gameOver: boolean;
-    }) => void,
-    preloadedImages: Map<string, HTMLImageElement> = new Map()
+    }) => void
   ) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
@@ -51,11 +76,10 @@ export class Game {
     this.score = 0;
     this.timer = 0;
     this.isPaused = false;
-    this.gameOver = false;
+    this.isGameOver = false;
     this.gameSpeed = this.config.gameSpeed.base;
     this.spawnTimer = 0;
     this.onUpdateState = onUpdateState;
-    this.preloadedImages = preloadedImages;
 
     // Bag setup
     this.bag = {
@@ -67,67 +91,121 @@ export class Game {
       basketImage: this.config.bag.basketImage,
     };
 
-    // Use preloaded basket image if available
-    this.basketImage =
-      this.preloadedImages.get(this.bag.basketImage) || new Image();
-    if (!this.basketImage.src) this.basketImage.src = this.bag.basketImage;
+    // Load basket image on demand
+    this.basketImage = new Image();
+    this.basketImage.src = this.bag.basketImage;
 
     this.setupCanvas();
     this.resetGame();
   }
 
-  // Start the internal animation loop
+  // Public API -------------------------------------------------
+
   start() {
-    if (this._rafId != null) return; // already running
+    if (this.rafId != null) return; // already running
     this.isPaused = false;
 
-    if (!this._resizeAttached) {
-      window.addEventListener("resize", this._onResize);
-      this._resizeAttached = true;
-    }
+    // Attach listeners and perform initial sizing/draw
+    window.addEventListener("resize", this.handleResize);
+    this.canvas.addEventListener("touchstart", this.handleTouchStart, {
+      passive: false,
+    });
+    this.canvas.addEventListener("touchmove", this.handleTouchMove, {
+      passive: false,
+    });
+    this.canvas.addEventListener("touchend", this.handleTouchEnd, {
+      passive: false,
+    });
+    this.canvas.addEventListener("touchcancel", this.handleTouchEnd, {
+      passive: false,
+    });
+    this.handleResize();
 
-    this._lastTime = performance.now();
+    this.lastTime = performance.now();
     const step = (time: number) => {
-      if (this.isPaused || this.gameOver) {
-        this._rafId = null;
+      if (this.isPaused || this.isGameOver) {
+        this.rafId = null;
         return;
       }
-      const delta = time - this._lastTime;
-      this._lastTime = time;
+      const delta = time - this.lastTime;
+      this.lastTime = time;
       this.update(delta);
       this.draw();
-      this._rafId = requestAnimationFrame(step);
+      this.rafId = requestAnimationFrame(step);
     };
-    this._rafId = requestAnimationFrame(step);
+    this.rafId = requestAnimationFrame(step);
   }
 
-  // Stop the loop completely
   stop() {
-    if (this._rafId != null) {
-      cancelAnimationFrame(this._rafId);
-      this._rafId = null;
+    if (this.rafId != null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
     }
-    if (this._resizeAttached) {
-      window.removeEventListener("resize", this._onResize);
-      this._resizeAttached = false;
-    }
+    // Detach listeners unconditionally
+    window.removeEventListener("resize", this.handleResize);
+    this.canvas.removeEventListener("touchstart", this.handleTouchStart);
+    this.canvas.removeEventListener("touchmove", this.handleTouchMove);
+    this.canvas.removeEventListener("touchend", this.handleTouchEnd);
+    this.canvas.removeEventListener("touchcancel", this.handleTouchEnd);
   }
 
-  // Pause without cancelling next frame
   pause() {
     this.isPaused = true;
   }
 
-  // Resume the loop
   resume() {
-    if (!this.isPaused) return;
+    if (!this.isPaused || this.isGameOver) return;
     this.isPaused = false;
-    this.start();
+    // Resume animation loop without reattaching listeners
+    this.lastTime = performance.now();
+    const step = (time: number) => {
+      if (this.isPaused || this.isGameOver) {
+        this.rafId = null;
+        return;
+      }
+      const delta = time - this.lastTime;
+      this.lastTime = time;
+      this.update(delta);
+      this.draw();
+      this.rafId = requestAnimationFrame(step);
+    };
+    this.rafId = requestAnimationFrame(step);
   }
 
-  spawnFloatingText(text: string, x: number, y: number) {
-    this.floatingTexts.push({ x, y, text, alpha: 1, lifetime: 1000 });
+  // Trigger game over state explicitly
+  gameOver() {
+    if (this.isGameOver) return;
+    this.isGameOver = true;
+    // Disable input immediately on game over
+    this.canvas.removeEventListener("touchstart", this.handleTouchStart);
+    this.canvas.removeEventListener("touchmove", this.handleTouchMove);
+    this.canvas.removeEventListener("touchend", this.handleTouchEnd);
+    this.canvas.removeEventListener("touchcancel", this.handleTouchEnd);
+    // push state
+    this.onUpdateState({
+      score: this.score,
+      timer: this.timer,
+      gameOver: true,
+    });
   }
+
+  resetGame() {
+    this.items = [];
+    this.score = 0;
+    this.timer = 0;
+    this.isPaused = false;
+    this.isGameOver = false;
+    this.gameSpeed = this.config.gameSpeed.base;
+    this.spawnTimer = 0;
+
+    this.onUpdateState({
+      score: this.score,
+      timer: this.timer,
+      gameOver: this.isGameOver,
+    });
+  }
+
+  // Render/Update ---------------------------------------------
 
   setupCanvas() {
     const dpr = window.devicePixelRatio || 1;
@@ -155,27 +233,21 @@ export class Game {
     this.canvasCssHeight = height;
   }
 
-  resetGame() {
-    this.items = [];
-    this.score = 0;
-    this.timer = 0;
-    this.isPaused = false;
-    this.gameOver = false;
-    this.gameSpeed = this.config.gameSpeed.base;
-    this.spawnTimer = 0;
-
-    this.onUpdateState({
-      score: this.score,
-      timer: this.timer,
-      gameOver: this.gameOver,
-    });
+  // Add back floating text spawn helper
+  spawnFloatingText(text: string, x: number, y: number) {
+    this.floatingTexts.push({ x, y, text, alpha: 1, lifetime: 1000 });
   }
 
   draw() {
     if (!this.ctx) return;
     this.ctx.clearRect(0, 0, this.canvasCssWidth, this.canvasCssHeight);
+    this.drawItems();
+    this.drawBag();
+    this.drawFloatingTexts();
+  }
 
-    // Draw items
+  drawItems() {
+    if (!this.ctx) return;
     this.items.forEach((item) => {
       if (item.imageElement && item.imageElement.complete) {
         const imgRatio = item.imageElement.width / item.imageElement.height;
@@ -204,8 +276,10 @@ export class Game {
         }
       }
     });
+  }
 
-    // Draw bag
+  drawBag() {
+    if (!this.ctx) return;
     if (this.basketImage.complete) {
       const imgRatio = this.basketImage.width / this.basketImage.height;
       const drawWidth = this.bag.width;
@@ -226,39 +300,54 @@ export class Game {
         this.bag.height
       );
     }
+  }
 
-    // Draw floating texts
+  drawFloatingTexts() {
+    if (!this.ctx) return;
     this.floatingTexts.forEach((p) => {
-      if (!this.ctx) return;
-      this.ctx.globalAlpha = p.alpha;
-      this.ctx.fillStyle = "#6ACE7F";
-      this.ctx.font = "700 16px 'Agdasima', sans-serif";
-      this.ctx.textAlign = "center";
-      this.ctx.fillText(p.text, p.x, p.y);
-      this.ctx.globalAlpha = 1;
+      this.ctx!.globalAlpha = p.alpha;
+      this.ctx!.fillStyle = "#6ACE7F";
+      this.ctx!.font = "700 16px 'Agdasima', sans-serif";
+      this.ctx!.textAlign = "center";
+      this.ctx!.fillText(p.text, p.x, p.y);
+      this.ctx!.globalAlpha = 1;
     });
   }
 
-  update(deltaTime: number) {
-    if (this.isPaused || this.gameOver) return;
-
+  // Update helpers to keep update() small
+  updateBag() {
     const lerpFactor = 0.1;
     this.bag.x += (this.bag.targetX - this.bag.x) * lerpFactor;
+  }
 
+  updateTimerAndSpeed(deltaTime: number) {
     this.timer += deltaTime / 1000;
     this.gameSpeed =
       this.config.gameSpeed.base +
       this.timer / this.config.gameSpeed.accelerationFactor;
+  }
 
+  updateItems(deltaTime: number) {
     this.items.forEach((item) => {
       item.y += item.speed * this.gameSpeed * (deltaTime / 1000);
     });
+  }
 
+  updateFloatingTexts(deltaTime: number) {
     this.floatingTexts = this.floatingTexts.filter((p) => {
       p.y -= 30 * (deltaTime / 1000);
       p.alpha -= deltaTime / p.lifetime;
       return p.alpha > 0;
     });
+  }
+
+  update(deltaTime: number) {
+    if (this.isPaused || this.isGameOver) return;
+
+    this.updateBag();
+    this.updateTimerAndSpeed(deltaTime);
+    this.updateItems(deltaTime);
+    this.updateFloatingTexts(deltaTime);
 
     this.checkCollisions();
     this.spawnItems(deltaTime);
@@ -267,9 +356,11 @@ export class Game {
     this.onUpdateState({
       score: this.score,
       timer: this.timer,
-      gameOver: this.gameOver,
+      gameOver: this.isGameOver,
     });
   }
+
+  // Game mechanics -------------------------------------------
 
   checkCollisions() {
     this.items = this.items.filter((item) => {
@@ -289,7 +380,7 @@ export class Game {
 
       if (isTouchingBagTopExactly && isMoreThanHalfInside) {
         if (item.type === "bomb") {
-          this.gameOver = true;
+          this.gameOver();
           return true;
         }
         this.score += item.value;
@@ -331,9 +422,8 @@ export class Game {
       for (const itemConfig of this.config.item.items) {
         cumulativeChance += itemConfig.spawnChance;
         if (rand < cumulativeChance) {
-          const img =
-            this.preloadedImages.get(itemConfig.image!) || new Image();
-          if (!img.src) img.src = itemConfig.image!;
+          const img = new Image();
+          if (itemConfig.image) img.src = itemConfig.image;
 
           newItem = {
             x,
@@ -362,8 +452,8 @@ export class Game {
     );
   }
 
-  handleDrag(clientX: number) {
-    const target = clientX - this.bag.width / 2;
+  handleDrag(x: number) {
+    const target = x - this.bag.width / 2;
     const clampedTarget = Math.max(
       0,
       Math.min(target, this.canvasCssWidth - this.bag.width)

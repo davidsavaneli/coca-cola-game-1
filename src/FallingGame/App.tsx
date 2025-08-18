@@ -1,22 +1,18 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
 import { defaultConfig } from "./config";
-import StartGameScreen from "./screens/StartGameScreen";
 import GameOverScreen from "./screens/GameOverScreen";
-import LoadingScreen from "./screens/LoadingScreen";
-import GameScreen from "./screens/GameScreen";
 
 import styles from "./styles.module.css";
+import bgImgSrc from "./assets/images/background.webp";
+import logoSrc from "./assets/images/logo.svg";
 
 const App = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
 
-  const [isPaused] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
-  const [hasStarted, setHasStarted] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
@@ -26,16 +22,8 @@ const App = () => {
     []
   );
 
-  // Static 200ms loader without preloading assets
+  // Auto-start game on mount
   useEffect(() => {
-    const id = setTimeout(() => setIsLoaded(true), 200);
-    return () => clearTimeout(id);
-  }, []);
-
-  // Initialize and start the game after start & assets loaded
-  useEffect(() => {
-    if (!hasStarted || !isLoaded) return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -47,29 +35,19 @@ const App = () => {
       gameRef.current?.stop();
       gameRef.current = null;
     };
-  }, [hasStarted, isLoaded, handleUpdateState]);
-
-  const handleStart = () => {
-    if (!isLoaded) return;
-    setHasStarted(true);
-  };
-
-  const canInteract = !!(hasStarted && isLoaded && !isPaused && !gameOver);
+  }, [handleUpdateState]);
 
   return (
     <div className={styles.scene}>
-      {!isLoaded && <LoadingScreen />}
-      {isLoaded && !hasStarted && (
-        <StartGameScreen onStart={handleStart} isLoaded={isLoaded} />
-      )}
-      {hasStarted && (
-        <GameScreen
-          canvasRef={canvasRef}
-          gameRef={gameRef}
-          score={score}
-          canInteract={canInteract}
-        />
-      )}
+      <img src={bgImgSrc} alt="" className={styles.bgImage} />
+      <div className={styles.startGameBackdrop}></div>
+      <img src={logoSrc} alt="Logo" className={styles.logo} />
+      <canvas ref={canvasRef} className={styles.canvas} />
+      <div className={styles.scoreBox}>
+        <div className={styles.score}>{score}</div>
+        <div className={styles.scoreLabel}>Points</div>
+      </div>
+
       {gameOver && (
         <GameOverScreen onRestart={() => window.location.reload()} />
       )}
