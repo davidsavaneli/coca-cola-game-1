@@ -138,7 +138,7 @@ p {
   object-position: center;
 }
 
-/* Canvas */
+/* Game Screen */
 
 canvas {
   position: relative;
@@ -164,6 +164,8 @@ canvas {
   z-index: 1;
 }
 
+/* Game Over Screen */
+
 .gameOverScreen {
   position: absolute;
   top: 0;
@@ -173,7 +175,6 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.5);
   z-index: 2;
 }
 

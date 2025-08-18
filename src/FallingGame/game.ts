@@ -111,34 +111,34 @@ export class Game {
     });
 
     // Draw bag
-    this.ctx.fillStyle = "black";
-    this.ctx.fillRect(this.bag.x, this.bag.y, this.bag.width, this.bag.height);
-    this.ctx.fillStyle = "white";
-    this.ctx.textAlign = "center";
-    this.ctx.font = "14px Arial";
-    this.ctx.fillText(
-      "bag",
-      this.bag.x + this.bag.width / 2,
-      this.bag.y + this.bag.height / 2 + 5
-    );
-    // if (this.basketImage.complete) {
-    //   this.ctx.drawImage(
-    //     this.basketImage,
-    //     this.bag.x,
-    //     this.bag.y,
-    //     this.bag.width,
-    //     this.bag.height
-    //   );
-    // } else {
-    //   // fallback rectangle
-    //   this.ctx.fillStyle = "black";
-    //   this.ctx.fillRect(
-    //     this.bag.x,
-    //     this.bag.y,
-    //     this.bag.width,
-    //     this.bag.height
-    //   );
-    // }
+    // this.ctx.fillStyle = "black";
+    // this.ctx.fillRect(this.bag.x, this.bag.y, this.bag.width, this.bag.height);
+    // this.ctx.fillStyle = "white";
+    // this.ctx.textAlign = "center";
+    // this.ctx.font = "14px Arial";
+    // this.ctx.fillText(
+    //   "bag",
+    //   this.bag.x + this.bag.width / 2,
+    //   this.bag.y + this.bag.height / 2 + 5
+    // );
+    if (this.basketImage.complete) {
+      this.ctx.drawImage(
+        this.basketImage,
+        this.bag.x,
+        this.bag.y,
+        this.bag.width,
+        this.bag.height
+      );
+    } else {
+      // fallback rectangle
+      this.ctx.fillStyle = "black";
+      this.ctx.fillRect(
+        this.bag.x,
+        this.bag.y,
+        this.bag.width,
+        this.bag.height
+      );
+    }
 
     this.floatingTexts.forEach((p) => {
       if (!this.ctx) return;
