@@ -44,25 +44,25 @@ const Index = () => {
         pause
       </button>
       <button
-        style={{ position: "absolute", top: 50, left: 0, zIndex: 3 }}
+        style={{ position: "absolute", top: 30, left: 0, zIndex: 3 }}
         onClick={() => gameRef.current?.resume()}
       >
         resume
       </button>
       <button
-        style={{ position: "absolute", top: 100, left: 0, zIndex: 3 }}
+        style={{ position: "absolute", top: 60, left: 0, zIndex: 3 }}
         onClick={() => gameRef.current?.reset()}
       >
         reset
       </button>
       <button
-        style={{ position: "absolute", top: 150, left: 0, zIndex: 3 }}
+        style={{ position: "absolute", top: 90, left: 0, zIndex: 3 }}
         onClick={() => gameRef.current?.stop()}
       >
         stop
       </button>
       <button
-        style={{ position: "absolute", top: 200, left: 0, zIndex: 3 }}
+        style={{ position: "absolute", top: 120, left: 0, zIndex: 3 }}
         onClick={() => gameRef.current?.start()}
       >
         start
@@ -79,10 +79,8 @@ const Index = () => {
       {gameOver && (
         <GameOverScreen
           onRestart={() => {
-            const game = gameRef.current;
-            if (!game) return;
-            game.reset();
-            game.start();
+            gameRef.current?.reset();
+            gameRef.current?.start();
           }}
         />
       )}
