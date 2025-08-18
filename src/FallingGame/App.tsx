@@ -4,6 +4,7 @@ import { Game } from "./game";
 import { defaultConfig } from "./config";
 import StartGameScreen from "./screens/StartGameScreen";
 import GameOverScreen from "./screens/GameOverScreen";
+import LoadingScreen from "./screens/LoadingScreen";
 
 import styles from "./styles.module.css";
 
@@ -198,7 +199,7 @@ const App = () => {
 
   return (
     <div className={styles.scene}>
-      {!isLoaded && <div className={styles.loader}>Loading...</div>}
+      {!isLoaded && <LoadingScreen />}
       {isLoaded && !hasStarted && (
         <StartGameScreen onStart={handleStart} isLoaded={isLoaded} />
       )}
