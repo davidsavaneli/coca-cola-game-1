@@ -7,7 +7,7 @@ import styles from "./styles.module.css";
 import bgImgSrc from "./assets/images/background.webp";
 import logoSrc from "./assets/images/logo.svg";
 
-const App = () => {
+const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
 
@@ -22,14 +22,12 @@ const App = () => {
     []
   );
 
-  // Auto-start game on mount
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const game = new Game(canvas, defaultConfig, handleUpdateState);
     gameRef.current = game;
-    game.start();
 
     return () => {
       gameRef.current?.stop();
@@ -39,6 +37,36 @@ const App = () => {
 
   return (
     <div className={styles.scene}>
+      <button
+        style={{ position: "absolute", top: 0, left: 0, zIndex: 3 }}
+        onClick={() => gameRef.current?.pause()}
+      >
+        pause
+      </button>
+      <button
+        style={{ position: "absolute", top: 50, left: 0, zIndex: 3 }}
+        onClick={() => gameRef.current?.resume()}
+      >
+        resume
+      </button>
+      <button
+        style={{ position: "absolute", top: 100, left: 0, zIndex: 3 }}
+        onClick={() => gameRef.current?.reset()}
+      >
+        reset
+      </button>
+      <button
+        style={{ position: "absolute", top: 150, left: 0, zIndex: 3 }}
+        onClick={() => gameRef.current?.stop()}
+      >
+        stop
+      </button>
+      <button
+        style={{ position: "absolute", top: 200, left: 0, zIndex: 3 }}
+        onClick={() => gameRef.current?.start()}
+      >
+        start
+      </button>
       <img src={bgImgSrc} alt="" className={styles.bgImage} />
       <div className={styles.startGameBackdrop}></div>
       <img src={logoSrc} alt="Logo" className={styles.logo} />
@@ -49,10 +77,17 @@ const App = () => {
       </div>
 
       {gameOver && (
-        <GameOverScreen onRestart={() => window.location.reload()} />
+        <GameOverScreen
+          onRestart={() => {
+            const game = gameRef.current;
+            if (!game) return;
+            game.reset();
+            game.start();
+          }}
+        />
       )}
     </div>
   );
 };
 
-export default App;
+export default Index;

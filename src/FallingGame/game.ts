@@ -1,62 +1,64 @@
 import type { FloatingText, Bag, Item, GameConfig } from "./types";
 
 export class Game {
-  floatingTexts: FloatingText[] = [];
+  // Rendering
   ctx: CanvasRenderingContext2D | null;
   canvas: HTMLCanvasElement;
-  bag: Bag;
-  items: Item[];
-  score: number;
-  timer: number;
-  isPaused: boolean;
-  isGameOver: boolean; // renamed from gameOver for clarity
-  gameSpeed: number;
-  spawnTimer: number;
+
+  // Config & state
   config: GameConfig;
-  basketImage: HTMLImageElement;
+  bag: Bag;
+  items: Item[] = [];
+  floatingTexts: FloatingText[] = [];
 
-  canvasCssWidth: number = 0;
-  canvasCssHeight: number = 0;
+  // Game state
+  score = 0;
+  timer = 0;
+  isPaused = false;
+  isGameOver = false;
+  gameSpeed: number;
+  spawnTimer = 0;
 
+  // Sizing
+  canvasCssWidth = 0;
+  canvasCssHeight = 0;
+
+  // External state sync
   onUpdateState: (state: {
     score: number;
     timer: number;
     gameOver: boolean;
   }) => void;
 
-  // Internal animation state
+  // Loop
   rafId: number | null = null;
   lastTime = 0;
 
-  // Internal event handlers/flags
-  // Removed activeTouchId; we always use the first touch
+  // Images
+  basketImage: HTMLImageElement;
+  imgCache = new Map<string, HTMLImageElement>();
 
+  // Handlers
   handleResize = () => {
-    // Pure resize handler: just size canvas and draw
     this.setupCanvas();
     this.draw();
   };
 
-  // Touch handlers attached to the canvas
   handleTouchStart = (e: TouchEvent) => {
-    if (this.isPaused || this.isGameOver) return;
-    if (e.touches.length === 0) return;
+    if (this.isPaused || this.isGameOver || e.touches.length === 0) return;
     const rect = this.canvas.getBoundingClientRect();
-    const x = e.touches[0].clientX - rect.left;
-    this.handleDrag(x);
+    this.handleDrag(e.touches[0].clientX - rect.left);
     e.preventDefault();
   };
 
   handleTouchMove = (e: TouchEvent) => {
     if (e.touches.length === 0) return;
     const rect = this.canvas.getBoundingClientRect();
-    const x = e.touches[0].clientX - rect.left;
-    this.handleDrag(x);
+    this.handleDrag(e.touches[0].clientX - rect.left);
     e.preventDefault();
   };
 
   handleTouchEnd = (e: TouchEvent) => {
-    // Nothing to reset now; prevent default to avoid ghost clicks/scroll
     e.preventDefault();
   };
 
@@ -72,16 +74,11 @@ export class Game {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.config = config;
-    this.items = [];
-    this.score = 0;
-    this.timer = 0;
-    this.isPaused = false;
-    this.isGameOver = false;
-    this.gameSpeed = this.config.gameSpeed.base;
-    this.spawnTimer = 0;
     this.onUpdateState = onUpdateState;
 
-    // Bag setup
+    this.gameSpeed = this.config.gameSpeed.base;
+
+    // Bag
     this.bag = {
       x: 0,
       y: 0,
@@ -91,49 +88,20 @@ export class Game {
       basketImage: this.config.bag.basketImage,
     };
 
-    // Load basket image on demand
-    this.basketImage = new Image();
-    this.basketImage.src = this.bag.basketImage;
+    // Images
+    this.basketImage = this.getImage(this.bag.basketImage);
 
     this.setupCanvas();
-    this.resetGame();
+    this.reset();
   }
 
   // Public API -------------------------------------------------
-
   start() {
-    if (this.rafId != null) return; // already running
+    if (this.rafId != null) return;
     this.isPaused = false;
-
-    // Attach listeners and perform initial sizing/draw
-    window.addEventListener("resize", this.handleResize);
-    this.canvas.addEventListener("touchstart", this.handleTouchStart, {
-      passive: false,
-    });
-    this.canvas.addEventListener("touchmove", this.handleTouchMove, {
-      passive: false,
-    });
-    this.canvas.addEventListener("touchend", this.handleTouchEnd, {
-      passive: false,
-    });
-    this.canvas.addEventListener("touchcancel", this.handleTouchEnd, {
-      passive: false,
-    });
+    this.toggleListeners(true);
     this.handleResize();
-
-    this.lastTime = performance.now();
-    const step = (time: number) => {
-      if (this.isPaused || this.isGameOver) {
-        this.rafId = null;
-        return;
-      }
-      const delta = time - this.lastTime;
-      this.lastTime = time;
-      this.update(delta);
-      this.draw();
-      this.rafId = requestAnimationFrame(step);
-    };
-    this.rafId = requestAnimationFrame(step);
+    this.startLoop();
   }
 
   stop() {
@@ -141,12 +109,7 @@ export class Game {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
-    // Detach listeners unconditionally
-    window.removeEventListener("resize", this.handleResize);
-    this.canvas.removeEventListener("touchstart", this.handleTouchStart);
-    this.canvas.removeEventListener("touchmove", this.handleTouchMove);
-    this.canvas.removeEventListener("touchend", this.handleTouchEnd);
-    this.canvas.removeEventListener("touchcancel", this.handleTouchEnd);
+    this.toggleListeners(false);
   }
 
   pause() {
@@ -156,23 +119,9 @@ export class Game {
   resume() {
     if (!this.isPaused || this.isGameOver) return;
     this.isPaused = false;
-    // Resume animation loop without reattaching listeners
-    this.lastTime = performance.now();
-    const step = (time: number) => {
-      if (this.isPaused || this.isGameOver) {
-        this.rafId = null;
-        return;
-      }
-      const delta = time - this.lastTime;
-      this.lastTime = time;
-      this.update(delta);
-      this.draw();
-      this.rafId = requestAnimationFrame(step);
-    };
-    this.rafId = requestAnimationFrame(step);
+    this.startLoop();
   }
 
-  // Trigger game over state explicitly
   gameOver() {
     if (this.isGameOver) return;
     this.isGameOver = true;
@@ -181,7 +130,6 @@ export class Game {
     this.canvas.removeEventListener("touchmove", this.handleTouchMove);
     this.canvas.removeEventListener("touchend", this.handleTouchEnd);
     this.canvas.removeEventListener("touchcancel", this.handleTouchEnd);
-    // push state
     this.onUpdateState({
       score: this.score,
       timer: this.timer,
@@ -189,15 +137,15 @@ export class Game {
     });
   }
 
-  resetGame() {
+  reset() {
     this.items = [];
+    this.floatingTexts = [];
     this.score = 0;
     this.timer = 0;
     this.isPaused = false;
     this.isGameOver = false;
     this.gameSpeed = this.config.gameSpeed.base;
     this.spawnTimer = 0;
-
     this.onUpdateState({
       score: this.score,
       timer: this.timer,
@@ -205,8 +153,51 @@ export class Game {
     });
   }
 
-  // Render/Update ---------------------------------------------
+  // Internals -------------------------------------------------
+  private startLoop() {
+    this.lastTime = performance.now();
+    const step = (t: number) => {
+      if (this.isPaused || this.isGameOver) {
+        this.rafId = null;
+        return;
+      }
+      const dt = t - this.lastTime;
+      this.lastTime = t;
+      this.update(dt);
+      this.draw();
+      this.rafId = requestAnimationFrame(step);
+    };
+    this.rafId = requestAnimationFrame(step);
+  }
 
+  private toggleListeners(add: boolean) {
+    const opts: AddEventListenerOptions = { passive: false };
+    if (add) {
+      window.addEventListener("resize", this.handleResize);
+      this.canvas.addEventListener("touchstart", this.handleTouchStart, opts);
+      this.canvas.addEventListener("touchmove", this.handleTouchMove, opts);
+      this.canvas.addEventListener("touchend", this.handleTouchEnd, opts);
+      this.canvas.addEventListener("touchcancel", this.handleTouchEnd, opts);
+    } else {
+      window.removeEventListener("resize", this.handleResize);
+      this.canvas.removeEventListener("touchstart", this.handleTouchStart);
+      this.canvas.removeEventListener("touchmove", this.handleTouchMove);
+      this.canvas.removeEventListener("touchend", this.handleTouchEnd);
+      this.canvas.removeEventListener("touchcancel", this.handleTouchEnd);
+    }
+  }
+
+  private getImage(src: string): HTMLImageElement {
+    let img = this.imgCache.get(src);
+    if (!img) {
+      img = new Image();
+      img.src = src;
+      this.imgCache.set(src, img);
+    }
+    return img;
+  }
+
+  // Layout ----------------------------------------------------
   setupCanvas() {
     const dpr = window.devicePixelRatio || 1;
     const width = document.body.offsetWidth;
@@ -216,141 +207,47 @@ export class Game {
     this.canvas.height = height * dpr;
     this.canvas.style.width = width + "px";
     this.canvas.style.height = height + "px";
-
     if (this.ctx) this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     this.bag.x = (width - this.bag.width) / 2;
     this.bag.y = height - this.config.bag.initialYOffset;
     this.bag.targetX = this.bag.x;
 
-    const oldHeight = this.canvasCssHeight || height;
-    const heightRatio = height / oldHeight;
-
-    this.items.forEach((item) => (item.y *= heightRatio));
-    this.floatingTexts.forEach((p) => (p.y *= heightRatio));
+    const oldH = this.canvasCssHeight || height;
+    const hRatio = height / oldH;
+    this.items.forEach((it) => (it.y *= hRatio));
+    this.floatingTexts.forEach((p) => (p.y *= hRatio));
 
     this.canvasCssWidth = width;
     this.canvasCssHeight = height;
   }
 
-  // Add back floating text spawn helper
-  spawnFloatingText(text: string, x: number, y: number) {
-    this.floatingTexts.push({ x, y, text, alpha: 1, lifetime: 1000 });
-  }
+  // Update & mechanics ---------------------------------------
+  update(dtMs: number) {
+    if (this.isPaused || this.isGameOver) return;
 
-  draw() {
-    if (!this.ctx) return;
-    this.ctx.clearRect(0, 0, this.canvasCssWidth, this.canvasCssHeight);
-    this.drawItems();
-    this.drawBag();
-    this.drawFloatingTexts();
-  }
+    const dt = dtMs / 1000;
+    // Smooth bag
+    this.bag.x += (this.bag.targetX - this.bag.x) * 0.1;
 
-  drawItems() {
-    if (!this.ctx) return;
-    this.items.forEach((item) => {
-      if (item.imageElement && item.imageElement.complete) {
-        const imgRatio = item.imageElement.width / item.imageElement.height;
-        const drawWidth = item.width;
-        const drawHeight = drawWidth / imgRatio;
-        this.ctx!.drawImage(
-          item.imageElement,
-          item.x,
-          item.y,
-          drawWidth,
-          drawHeight
-        );
-      } else {
-        this.ctx!.fillStyle = item.type === "bomb" ? "red" : "gray";
-        this.ctx!.fillRect(item.x, item.y, item.width, item.height);
-
-        if (item.type === "point") {
-          this.ctx!.fillStyle = "white";
-          this.ctx!.textAlign = "center";
-          this.ctx!.font = "14px Arial";
-          this.ctx!.fillText(
-            `+${item.value}`,
-            item.x + item.width / 2,
-            item.y + item.height / 2 + 5
-          );
-        }
-      }
-    });
-  }
-
-  drawBag() {
-    if (!this.ctx) return;
-    if (this.basketImage.complete) {
-      const imgRatio = this.basketImage.width / this.basketImage.height;
-      const drawWidth = this.bag.width;
-      const drawHeight = drawWidth / imgRatio;
-      this.ctx.drawImage(
-        this.basketImage,
-        this.bag.x,
-        this.bag.y,
-        drawWidth,
-        drawHeight
-      );
-    } else {
-      this.ctx.fillStyle = "black";
-      this.ctx.fillRect(
-        this.bag.x,
-        this.bag.y,
-        this.bag.width,
-        this.bag.height
-      );
-    }
-  }
-
-  drawFloatingTexts() {
-    if (!this.ctx) return;
-    this.floatingTexts.forEach((p) => {
-      this.ctx!.globalAlpha = p.alpha;
-      this.ctx!.fillStyle = "#6ACE7F";
-      this.ctx!.font = "700 16px 'Agdasima', sans-serif";
-      this.ctx!.textAlign = "center";
-      this.ctx!.fillText(p.text, p.x, p.y);
-      this.ctx!.globalAlpha = 1;
-    });
-  }
-
-  // Update helpers to keep update() small
-  updateBag() {
-    const lerpFactor = 0.1;
-    this.bag.x += (this.bag.targetX - this.bag.x) * lerpFactor;
-  }
-
-  updateTimerAndSpeed(deltaTime: number) {
-    this.timer += deltaTime / 1000;
+    // Time & speed
+    this.timer += dt;
     this.gameSpeed =
       this.config.gameSpeed.base +
       this.timer / this.config.gameSpeed.accelerationFactor;
-  }
 
-  updateItems(deltaTime: number) {
-    this.items.forEach((item) => {
-      item.y += item.speed * this.gameSpeed * (deltaTime / 1000);
-    });
-  }
+    // Items
+    this.items.forEach((it) => (it.y += it.speed * this.gameSpeed * dt));
 
-  updateFloatingTexts(deltaTime: number) {
+    // Floating texts
     this.floatingTexts = this.floatingTexts.filter((p) => {
-      p.y -= 30 * (deltaTime / 1000);
-      p.alpha -= deltaTime / p.lifetime;
+      p.y -= 30 * dt;
+      p.alpha -= dtMs / p.lifetime;
       return p.alpha > 0;
     });
-  }
-
-  update(deltaTime: number) {
-    if (this.isPaused || this.isGameOver) return;
-
-    this.updateBag();
-    this.updateTimerAndSpeed(deltaTime);
-    this.updateItems(deltaTime);
-    this.updateFloatingTexts(deltaTime);
 
     this.checkCollisions();
-    this.spawnItems(deltaTime);
+    this.spawnItems(dtMs);
     this.removeOffScreenItems();
 
     this.onUpdateState({
@@ -360,44 +257,76 @@ export class Game {
     });
   }
 
-  // Game mechanics -------------------------------------------
+  spawnItems(dtMs: number) {
+    this.spawnTimer += dtMs / 1000;
+    const spawnInterval =
+      1 / (this.gameSpeed * this.config.item.spawnIntervalFactor);
+    if (this.spawnTimer <= spawnInterval) return;
+
+    this.spawnTimer = 0;
+    const rand = Math.random() * 100;
+    const w = this.config.item.width;
+    const h = this.config.item.height;
+    const x = Math.random() * (this.canvasCssWidth - w);
+
+    let cum = 0;
+    for (const cfg of this.config.item.items) {
+      cum += cfg.spawnChance;
+      if (rand < cum) {
+        const img = this.getImage(cfg.image);
+        this.items.push({
+          x,
+          y: -h,
+          width: w,
+          height: h,
+          type: cfg.type,
+          value: cfg.value,
+          speed: cfg.speed,
+          deduct: cfg.deduct,
+          image: cfg.image,
+          imageElement: img,
+        });
+        break;
+      }
+    }
+  }
 
   checkCollisions() {
-    this.items = this.items.filter((item) => {
-      const itemBottom = item.y + item.height;
+    this.items = this.items.filter((it) => {
+      const itemBottom = it.y + it.height;
       const bagTop = this.bag.y;
-
-      const isTouchingBagTopExactly =
+      const isTouchingTop =
         itemBottom >= bagTop &&
-        itemBottom - item.speed * this.gameSpeed * (1 / 60) < bagTop;
+        itemBottom - it.speed * this.gameSpeed * (1 / 60) < bagTop;
 
-      const horizontalOverlap = Math.max(
+      const overlap = Math.max(
         0,
-        Math.min(item.x + item.width, this.bag.x + this.bag.width) -
-          Math.max(item.x, this.bag.x)
+        Math.min(it.x + it.width, this.bag.x + this.bag.width) -
+          Math.max(it.x, this.bag.x)
       );
-      const isMoreThanHalfInside = horizontalOverlap >= item.width / 2;
+      const halfInside = overlap >= it.width / 2;
 
-      if (isTouchingBagTopExactly && isMoreThanHalfInside) {
-        if (item.type === "bomb") {
+      if (isTouchingTop && halfInside) {
+        if (it.type === "bomb") {
           this.gameOver();
-          return true;
+          return true; // keep bomb to render momentarily
         }
-        this.score += item.value;
-        this.spawnFloatingText(
-          `+${item.value}`,
-          item.x + item.width / 2,
-          item.y + item.height / 2
-        );
-        return false;
+        this.score += it.value;
+        this.floatingTexts.push({
+          x: it.x + it.width / 2,
+          y: it.y + it.height / 2,
+          text: `+${it.value}`,
+          alpha: 1,
+          lifetime: 1000,
+        });
+        return false; // remove collected item
       }
 
-      if (
-        item.type === "point" &&
-        item.y > this.canvasCssHeight + item.height
-      ) {
-        this.score -= item.deduct ?? this.config.item.defaultDeduct;
-        if (this.score < 0) this.score = 0;
+      if (it.type === "point" && it.y > this.canvasCssHeight + it.height) {
+        this.score = Math.max(
+          0,
+          this.score - (it.deduct ?? this.config.item.defaultDeduct)
+        );
         return false;
       }
 
@@ -405,60 +334,55 @@ export class Game {
     });
   }
 
-  spawnItems(deltaTime: number) {
-    this.spawnTimer += deltaTime / 1000;
-    const spawnInterval =
-      1 / (this.gameSpeed * this.config.item.spawnIntervalFactor);
-
-    if (this.spawnTimer > spawnInterval) {
-      this.spawnTimer = 0;
-      const rand = Math.random() * 100;
-      let newItem: Item | null = null;
-      const itemWidth = this.config.item.width;
-      const itemHeight = this.config.item.height;
-      const x = Math.random() * (this.canvasCssWidth - itemWidth);
-
-      let cumulativeChance = 0;
-      for (const itemConfig of this.config.item.items) {
-        cumulativeChance += itemConfig.spawnChance;
-        if (rand < cumulativeChance) {
-          const img = new Image();
-          if (itemConfig.image) img.src = itemConfig.image;
-
-          newItem = {
-            x,
-            y: -itemHeight,
-            width: itemWidth,
-            height: itemHeight,
-            type: itemConfig.type,
-            value: itemConfig.value,
-            speed: itemConfig.speed,
-            deduct: itemConfig.deduct,
-            image: itemConfig.image,
-            imageElement: img,
-          };
-          break;
-        }
-      }
-
-      if (newItem) this.items.push(newItem);
-    }
-  }
-
   removeOffScreenItems() {
     this.items = this.items.filter(
-      (item) =>
-        item.type === "bomb" || item.y < this.canvasCssHeight + item.height
+      (it) => it.type === "bomb" || it.y < this.canvasCssHeight + it.height
     );
   }
 
+  // Input -----------------------------------------------------
   handleDrag(x: number) {
-    const target = x - this.bag.width / 2;
-    const clampedTarget = Math.max(
+    const target = Math.max(
       0,
-      Math.min(target, this.canvasCssWidth - this.bag.width)
+      Math.min(x - this.bag.width / 2, this.canvasCssWidth - this.bag.width)
     );
-    this.bag.x += (clampedTarget - this.bag.x) * 0.2;
-    this.bag.targetX = clampedTarget;
+    this.bag.x += (target - this.bag.x) * 0.2;
+    this.bag.targetX = target;
+  }
+
+  // Rendering -------------------------------------------------
+  draw() {
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+
+    ctx.clearRect(0, 0, this.canvasCssWidth, this.canvasCssHeight);
+
+    // Items
+    for (const it of this.items) {
+      if (it.imageElement && it.imageElement.complete) {
+        const ratio = it.imageElement.width / it.imageElement.height;
+        const dw = it.width;
+        const dh = dw / ratio;
+        ctx.drawImage(it.imageElement, it.x, it.y, dw, dh);
+      }
+    }
+
+    // Bag
+    if (this.basketImage.complete) {
+      const ratio = this.basketImage.width / this.basketImage.height;
+      const dw = this.bag.width;
+      const dh = dw / ratio;
+      ctx.drawImage(this.basketImage, this.bag.x, this.bag.y, dw, dh);
+    }
+
+    // Floating text
+    for (const p of this.floatingTexts) {
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = "#6ACE7F";
+      ctx.font = "700 16px 'Agdasima', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(p.text, p.x, p.y);
+      ctx.globalAlpha = 1;
+    }
   }
 }
