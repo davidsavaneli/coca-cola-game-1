@@ -13,7 +13,8 @@ export interface Item {
   height: number;
   type: "point" | "bomb";
   value: number;
-  color: string;
+  image: string;
+  imageElement?: HTMLImageElement;
   speed: number;
   deduct?: number;
 }
@@ -24,6 +25,7 @@ export interface Bag {
   width: number;
   height: number;
   targetX: number;
+  basketImage: string;
 }
 
 export interface GameConfig {
@@ -31,6 +33,7 @@ export interface GameConfig {
     width: number;
     height: number;
     initialYOffset: number;
+    basketImage: string; // <--- added basket image path here
   };
   item: {
     width: number;
@@ -40,7 +43,7 @@ export interface GameConfig {
     items: {
       type: "point" | "bomb";
       value: number;
-      color: string;
+      image: string;
       speed: number;
       spawnChance: number;
       deduct?: number;

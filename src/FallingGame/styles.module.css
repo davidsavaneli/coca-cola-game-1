@@ -1,6 +1,7 @@
 /* Fonts */
 
 @import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Agdasima:wght@400;700&display=swap");
 
 /* General */
 
@@ -125,6 +126,7 @@ p {
   text-transform: uppercase;
   font-family: "Nunito", sans-serif;
   font-weight: 900;
+  text-align: center;
 }
 
 .muteUnmuteIcon {
@@ -145,23 +147,47 @@ canvas {
   z-index: 2;
 }
 
-.score {
+.logo {
   position: absolute;
+  top: 68px;
   left: 50%;
-  top: 0;
   transform: translateX(-50%);
-  font-size: 14px;
-  color: #000;
-  z-index: 1;
+  width: 96px;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  z-index: 2;
+  pointer-events: none;
 }
 
-.pauseResumeBtn {
+.scoreBox {
   position: absolute;
-  top: 0;
-  right: 0;
+  left: 50%;
+  top: 113px;
+  transform: translateX(-50%);
   font-size: 14px;
-  color: #000;
-  z-index: 1;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.score {
+  font-size: 56px;
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-family: "Agdasima", sans-serif;
+  text-align: center;
+}
+
+.scoreLabel {
+  font-size: 16px;
+  color: #fff;
+  text-transform: uppercase;
+  font-family: "Nunito", sans-serif;
+  font-weight: 900;
+  text-align: center;
+  margin-top: -4px;
 }
 
 /* Game Over Screen */

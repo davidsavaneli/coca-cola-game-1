@@ -6,13 +6,14 @@ import soundOnIconSrc from "../assets/images/sound-on-icon.svg";
 
 interface Props {
   onStart: () => void;
+  isLoaded: boolean;
 }
 
-const StartGameScreen = ({ onStart }: Props) => (
+const StartGameScreen = ({ onStart, isLoaded }: Props) => (
   <>
     <img src={bgImgSrc} alt="" className={styles.bgImage} />
     <div className={styles.startGameScreen}>
-      <button className={styles.playBtn} onClick={onStart}>
+      <button className={styles.playBtn} onClick={onStart} disabled={!isLoaded}>
         <img src={playBtnIconSrc} alt="" className={styles.playBtnIcon} />
         <p className={styles.playBtnLabel}>play</p>
       </button>
