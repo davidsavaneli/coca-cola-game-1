@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
@@ -28,6 +29,12 @@ const Index = () => {
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
   const [muted, setMuted] = useState(true);
+
+  const sendPostMessage = (eventName: string, payload: any = null) => {
+    window.postMessage({ event: eventName, payload: payload });
+  };
+
+  sendPostMessage("GET_SCORE", score);
 
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
