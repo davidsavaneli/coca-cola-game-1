@@ -183,13 +183,13 @@ const Index = () => {
     setStarted(true);
   }, []);
 
-  const handlePauseGame = useCallback(() => {
-    gameRef.current?.pause();
-  }, []);
+  // const handlePauseGame = useCallback(() => {
+  //   gameRef.current?.pause();
+  // }, []);
 
-  const handleResumeGame = useCallback(() => {
-    gameRef.current?.resume();
-  }, []);
+  // const handleResumeGame = useCallback(() => {
+  //   gameRef.current?.resume();
+  // }, []);
 
   return (
     <div className={styles.scene}>
