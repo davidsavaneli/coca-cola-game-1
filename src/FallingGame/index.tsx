@@ -1,7 +1,10 @@
 import { useRef, useEffect, useState, useCallback } from "react";
+import type { RefObject } from "react";
 import { Game } from "./game";
 import { defaultConfig } from "./config";
 import GameOverScreen from "./screens/GameOverScreen";
+import GameScreen from "./screens/GameScreen";
+import StartGameScreen from "./screens/StartGameScreen";
 
 import styles from "./styles.module.css";
 import bgImgSrc from "./assets/images/background.webp";
@@ -13,6 +16,7 @@ const Index = () => {
 
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
+  const [started, setStarted] = useState(false);
 
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
@@ -22,70 +26,88 @@ const Index = () => {
     []
   );
 
+  // Create/start the game whenever the canvas is mounted (started && !gameOver)
   useEffect(() => {
+    if (!started || gameOver) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const game = new Game(canvas, defaultConfig, handleUpdateState);
     gameRef.current = game;
+    game.start();
 
     return () => {
       gameRef.current?.stop();
       gameRef.current = null;
     };
-  }, [handleUpdateState]);
+  }, [started, gameOver, handleUpdateState]);
+
+  // When game over, ensure any running game is stopped and cleared
+  useEffect(() => {
+    if (gameOver) {
+      console.log(score);
+      gameRef.current?.stop();
+      gameRef.current = null;
+    }
+  }, [gameOver, score]);
+
+  const handleStart = useCallback(() => {
+    setGameOver(false);
+    setStarted(true);
+  }, []);
 
   return (
     <div className={styles.scene}>
-      <button
-        style={{ position: "absolute", top: 0, left: 0, zIndex: 3 }}
-        onClick={() => gameRef.current?.pause()}
-      >
-        pause
-      </button>
-      <button
-        style={{ position: "absolute", top: 30, left: 0, zIndex: 3 }}
-        onClick={() => gameRef.current?.resume()}
-      >
-        resume
-      </button>
-      <button
-        style={{ position: "absolute", top: 60, left: 0, zIndex: 3 }}
-        onClick={() => gameRef.current?.reset()}
-      >
-        reset
-      </button>
-      <button
-        style={{ position: "absolute", top: 90, left: 0, zIndex: 3 }}
-        onClick={() => gameRef.current?.stop()}
-      >
-        stop
-      </button>
-      <button
-        style={{ position: "absolute", top: 120, left: 0, zIndex: 3 }}
-        onClick={() => gameRef.current?.start()}
-      >
-        start
-      </button>
-      <img src={bgImgSrc} alt="" className={styles.bgImage} />
-      <div className={styles.startGameBackdrop}></div>
-      <img src={logoSrc} alt="Logo" className={styles.logo} />
-      <canvas ref={canvasRef} className={styles.canvas} />
-      <div className={styles.scoreBox}>
-        <div className={styles.score}>{score}</div>
-        <div className={styles.scoreLabel}>Points</div>
-      </div>
+      <Controls gameRef={gameRef} />
 
-      {gameOver && (
+      {started && <div className={styles.backdrop}></div>}
+
+      <img src={bgImgSrc} alt="" className={styles.bgImage} />
+
+      {(started || gameOver) && (
+        <>
+          <img src={logoSrc} alt="Logo" className={styles.logo} />
+          <div className={styles.scoreBox}>
+            <div className={styles.score}>{score}</div>
+            <div className={styles.scoreLabel}>Points</div>
+          </div>
+        </>
+      )}
+
+      {!started ? (
+        <StartGameScreen
+          onStart={handleStart}
+          muted={true}
+          onToggleMute={() => console.log("onToggleMute")}
+          onHowToPlay={() => console.log("onHowToPlay")}
+        />
+      ) : gameOver ? (
         <GameOverScreen
           onRestart={() => {
-            gameRef.current?.reset();
-            gameRef.current?.start();
+            setGameOver(false);
+            setStarted(true);
           }}
+          onCloseGame={() => console.log("onCloseGame")}
+          noAttempts={true}
         />
+      ) : (
+        <GameScreen canvasRef={canvasRef} />
       )}
     </div>
   );
 };
 
 export default Index;
+
+const Controls = ({ gameRef }: { gameRef: RefObject<Game | null> }) => {
+  const get = () => gameRef.current;
+  return (
+    <div style={{ position: "absolute", zIndex: 5 }}>
+      <button onClick={() => get()?.pause()}>pause</button>
+      <button onClick={() => get()?.resume()}>resume</button>
+      <button onClick={() => get()?.reset()}>reset</button>
+      <button onClick={() => get()?.stop()}>stop</button>
+      <button onClick={() => get()?.start()}>start</button>
+    </div>
+  );
+};
