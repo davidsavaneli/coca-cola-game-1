@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
 import { defaultConfig } from "./config";
@@ -185,13 +186,13 @@ const Index = () => {
 
   return (
     <div className={styles.scene}>
-      <div style={{ position: "absolute", zIndex: 5 }}>
+      {/* <div style={{ position: "absolute", zIndex: 5 }}>
         <button onClick={handlePauseGame}>pause</button>
         <button onClick={handleResumeGame}>resume</button>
         <button onClick={handleRestartGame}>restart</button>
         <button onClick={handleCloseGame}>stop</button>
         <button onClick={handleStartGame}>start</button>
-      </div>
+      </div> */}
 
       {started && <div className={styles.backdrop}></div>}
 
