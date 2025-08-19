@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import type { RefObject } from "react";
 import { Game } from "./game";
 import { defaultConfig } from "./config";
+import { SoundManager } from "./sound";
 
 import LoadingScreen from "./screens/LoaderScreen";
 import StartGameScreen from "./screens/StartGameScreen";
@@ -19,11 +20,13 @@ import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
+  const soundRef = useRef<SoundManager | null>(new SoundManager());
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
+  const [muted, setMuted] = useState(true);
 
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
@@ -104,7 +107,12 @@ const Index = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const game = new Game(canvas, defaultConfig, handleUpdateState);
+    const game = new Game(
+      canvas,
+      defaultConfig,
+      handleUpdateState,
+      soundRef.current ?? undefined
+    );
     gameRef.current = game;
     game.start();
 
@@ -124,8 +132,25 @@ const Index = () => {
   }, [gameOver, score]);
 
   const handleStart = useCallback(() => {
+    // Only start the game; do not start theme here
     setGameOver(false);
     setStarted(true);
+  }, []);
+
+  const handleToggleMute = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev;
+      const sound = soundRef.current;
+      if (sound) {
+        // Unlock audio and then apply mute state + theme playback
+        sound.preload().then(() => {
+          sound.setMuted(next);
+          if (next) sound.stopTheme();
+          else sound.playTheme();
+        });
+      }
+      return next;
+    });
   }, []);
 
   return (
@@ -151,8 +176,8 @@ const Index = () => {
       ) : !started ? (
         <StartGameScreen
           onStart={handleStart}
-          muted={true}
-          onToggleMute={() => console.log("onToggleMute")}
+          muted={muted}
+          onToggleMute={handleToggleMute}
           onHowToPlay={() => console.log("onHowToPlay")}
         />
       ) : gameOver ? (
@@ -164,6 +189,8 @@ const Index = () => {
           onCloseGame={() => {
             setStarted(false);
             setGameOver(false);
+            soundRef.current?.stopTheme();
+            setMuted(true);
           }}
         />
       ) : (
