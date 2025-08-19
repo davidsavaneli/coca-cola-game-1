@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import type { RefObject } from "react";
 import { Game } from "./game";
 import { defaultConfig } from "./config";
 import { SoundManager } from "./sound";
@@ -10,6 +9,7 @@ import GameScreen from "./screens/GameScreen";
 import GameOverScreen from "./screens/GameOverScreen";
 
 import styles from "./styles.module.css";
+
 import bgImgSrc from "./assets/images/background.webp";
 import logoSrc from "./assets/images/logo.svg";
 import playIconSrc from "./assets/images/play-btn-icon.svg";
@@ -76,6 +76,13 @@ const Index = () => {
 
       await preloadImages([...urls]);
 
+      // Warm up audio files (no playback yet)
+      try {
+        await soundRef.current?.warmup();
+      } catch {
+        // ignore
+      }
+
       try {
         // Load commonly used font variants
         await Promise.all([
@@ -131,18 +138,12 @@ const Index = () => {
     }
   }, [gameOver, score]);
 
-  const handleStart = useCallback(() => {
-    // Only start the game; do not start theme here
-    setGameOver(false);
-    setStarted(true);
-  }, []);
-
   const handleToggleMute = useCallback(() => {
     setMuted((prev) => {
       const next = !prev;
       const sound = soundRef.current;
       if (sound) {
-        // Unlock audio and then apply mute state + theme playback
+        // Unlock audio on first toggle, then play/stop immediately
         sound.preload().then(() => {
           sound.setMuted(next);
           if (next) sound.stopTheme();
@@ -153,9 +154,44 @@ const Index = () => {
     });
   }, []);
 
+  const handleStartGame = useCallback(() => {
+    gameRef.current?.start();
+    setGameOver(false);
+    setStarted(true);
+  }, []);
+
+  const handleCloseGame = useCallback(() => {
+    gameRef.current?.stop();
+    setStarted(false);
+    setGameOver(false);
+    soundRef.current?.stopTheme();
+    setMuted(true);
+  }, []);
+
+  const handleRestartGame = useCallback(() => {
+    gameRef.current?.reset();
+    gameRef.current?.start();
+    setGameOver(false);
+    setStarted(true);
+  }, []);
+
+  const handlePauseGame = useCallback(() => {
+    gameRef.current?.pause();
+  }, []);
+
+  const handleResumeGame = useCallback(() => {
+    gameRef.current?.resume();
+  }, []);
+
   return (
     <div className={styles.scene}>
-      <Controls gameRef={gameRef} />
+      <div style={{ position: "absolute", zIndex: 5 }}>
+        <button onClick={handlePauseGame}>pause</button>
+        <button onClick={handleResumeGame}>resume</button>
+        <button onClick={handleRestartGame}>restart</button>
+        <button onClick={handleCloseGame}>stop</button>
+        <button onClick={handleStartGame}>start</button>
+      </div>
 
       {started && <div className={styles.backdrop}></div>}
 
@@ -175,23 +211,15 @@ const Index = () => {
         <LoadingScreen />
       ) : !started ? (
         <StartGameScreen
-          onStart={handleStart}
+          onStart={handleStartGame}
           muted={muted}
           onToggleMute={handleToggleMute}
           onHowToPlay={() => console.log("onHowToPlay")}
         />
       ) : gameOver ? (
         <GameOverScreen
-          onRestart={() => {
-            setGameOver(false);
-            setStarted(true);
-          }}
-          onCloseGame={() => {
-            setStarted(false);
-            setGameOver(false);
-            soundRef.current?.stopTheme();
-            setMuted(true);
-          }}
+          onRestart={handleRestartGame}
+          onCloseGame={handleCloseGame}
         />
       ) : (
         <GameScreen canvasRef={canvasRef} />
@@ -201,16 +229,3 @@ const Index = () => {
 };
 
 export default Index;
-
-const Controls = ({ gameRef }: { gameRef: RefObject<Game | null> }) => {
-  const get = () => gameRef.current;
-  return (
-    <div style={{ position: "absolute", zIndex: 5 }}>
-      <button onClick={() => get()?.pause()}>pause</button>
-      <button onClick={() => get()?.resume()}>resume</button>
-      <button onClick={() => get()?.reset()}>reset</button>
-      <button onClick={() => get()?.stop()}>stop</button>
-      <button onClick={() => get()?.start()}>start</button>
-    </div>
-  );
-};

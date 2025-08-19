@@ -18,6 +18,45 @@ export class SoundManager {
       this.themeAudio.loop = true;
       this.themeAudio.volume = 0.6;
     }
+    // hint the browser to prefetch buffers when possible
+    if (this.catchAudio) this.catchAudio.preload = "auto";
+    if (this.gameOverAudio) this.gameOverAudio.preload = "auto";
+    if (this.themeAudio) this.themeAudio.preload = "auto";
+  }
+
+  // Warmup audio without playing (safe to call without user gesture)
+  async warmup(): Promise<void> {
+    const ensureLoaded = (el?: HTMLAudioElement): Promise<void> =>
+      new Promise((resolve) => {
+        if (!el) return resolve();
+        const done = () => resolve();
+        const timeout = setTimeout(done, 1200);
+        const onReady = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
+        try {
+          el.preload = "auto";
+          el.load();
+          el.addEventListener("canplaythrough", onReady, { once: true });
+        } catch {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+
+    // Fetch the resources to fill HTTP cache (best-effort)
+    const cacheFetch = (url: string) =>
+      fetch(url, { cache: "force-cache" }).then(() => void 0).catch(() => void 0);
+
+    await Promise.all([
+      ensureLoaded(this.catchAudio),
+      ensureLoaded(this.gameOverAudio),
+      ensureLoaded(this.themeAudio),
+      cacheFetch(catchSoundSrc),
+      cacheFetch(gameOverSoundSrc),
+      cacheFetch(themeSoundSrc),
+    ]);
   }
 
   // Must be called from a user gesture to allow audio playback on iOS/Safari
