@@ -6,7 +6,7 @@ import item2Src from "./assets/images/item-2.png";
 import item3Src from "./assets/images/item-3.png";
 import item4Src from "./assets/images/item-4.png";
 import item5Src from "./assets/images/item-5.png";
-import basketSrc from "./assets/images/basket.png"; // <-- basket image
+import basketSrc from "./assets/images/basket.png";
 
 export const defaultConfig: GameConfig = {
   basket: {

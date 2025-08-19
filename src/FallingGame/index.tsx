@@ -45,7 +45,7 @@ const Index = () => {
   // When game over, ensure any running game is stopped and cleared
   useEffect(() => {
     if (gameOver) {
-      console.log(score);
+      console.log(score, "score");
       gameRef.current?.stop();
       gameRef.current = null;
     }
