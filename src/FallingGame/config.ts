@@ -9,7 +9,7 @@ import item5Src from "./assets/images/item-5.png";
 import basketSrc from "./assets/images/basket.png"; // <-- basket image
 
 export const defaultConfig: GameConfig = {
-  bag: {
+  basket: {
     width: 120,
     height: 70,
     initialYOffset: 100,

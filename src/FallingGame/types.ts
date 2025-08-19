@@ -19,7 +19,7 @@ export interface Item {
   deduct?: number;
 }
 
-export interface Bag {
+export interface Basket {
   x: number;
   y: number;
   width: number;
@@ -29,11 +29,11 @@ export interface Bag {
 }
 
 export interface GameConfig {
-  bag: {
+  basket: {
     width: number;
     height: number;
     initialYOffset: number;
-    basketImage: string; // <--- added basket image path here
+    basketImage: string; // <--- basket image path here
   };
   item: {
     width: number;

@@ -1,4 +1,4 @@
-import type { FloatingText, Bag, Item, GameConfig } from "./types";
+import type { FloatingText, Basket, Item, GameConfig } from "./types";
 
 export class Game {
   // Rendering
@@ -7,7 +7,7 @@ export class Game {
 
   // Config & state
   config: GameConfig;
-  bag: Bag;
+  basket: Basket;
   items: Item[] = [];
   floatingTexts: FloatingText[] = [];
 
@@ -78,18 +78,18 @@ export class Game {
 
     this.gameSpeed = this.config.gameSpeed.base;
 
-    // Bag
-    this.bag = {
+    // Basket
+    this.basket = {
       x: 0,
       y: 0,
-      width: this.config.bag.width,
-      height: this.config.bag.height,
+      width: this.config.basket.width,
+      height: this.config.basket.height,
       targetX: 0,
-      basketImage: this.config.bag.basketImage,
+      basketImage: this.config.basket.basketImage,
     };
 
     // Images
-    this.basketImage = this.getImage(this.bag.basketImage);
+    this.basketImage = this.getImage(this.basket.basketImage);
 
     this.setupCanvas();
     this.reset();
@@ -209,9 +209,9 @@ export class Game {
     this.canvas.style.height = height + "px";
     if (this.ctx) this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    this.bag.x = (width - this.bag.width) / 2;
-    this.bag.y = height - this.config.bag.initialYOffset;
-    this.bag.targetX = this.bag.x;
+    this.basket.x = (width - this.basket.width) / 2;
+    this.basket.y = height - this.config.basket.initialYOffset;
+    this.basket.targetX = this.basket.x;
 
     const oldH = this.canvasCssHeight || height;
     const hRatio = height / oldH;
@@ -227,8 +227,8 @@ export class Game {
     if (this.isPaused || this.isGameOver) return;
 
     const dt = dtMs / 1000;
-    // Smooth bag
-    this.bag.x += (this.bag.targetX - this.bag.x) * 0.1;
+    // Smooth basket
+    this.basket.x += (this.basket.targetX - this.basket.x) * 0.1;
 
     // Time & speed
     this.timer += dt;
@@ -294,15 +294,15 @@ export class Game {
   checkCollisions() {
     this.items = this.items.filter((it) => {
       const itemBottom = it.y + it.height;
-      const bagTop = this.bag.y;
+      const basketTop = this.basket.y;
       const isTouchingTop =
-        itemBottom >= bagTop &&
-        itemBottom - it.speed * this.gameSpeed * (1 / 60) < bagTop;
+        itemBottom >= basketTop &&
+        itemBottom - it.speed * this.gameSpeed * (1 / 60) < basketTop;
 
       const overlap = Math.max(
         0,
-        Math.min(it.x + it.width, this.bag.x + this.bag.width) -
-          Math.max(it.x, this.bag.x)
+        Math.min(it.x + it.width, this.basket.x + this.basket.width) -
+          Math.max(it.x, this.basket.x)
       );
       const halfInside = overlap >= it.width / 2;
 
@@ -344,10 +344,10 @@ export class Game {
   handleDrag(x: number) {
     const target = Math.max(
       0,
-      Math.min(x - this.bag.width / 2, this.canvasCssWidth - this.bag.width)
+      Math.min(x - this.basket.width / 2, this.canvasCssWidth - this.basket.width)
     );
-    this.bag.x += (target - this.bag.x) * 0.2;
-    this.bag.targetX = target;
+    this.basket.x += (target - this.basket.x) * 0.2;
+    this.basket.targetX = target;
   }
 
   // Rendering -------------------------------------------------
@@ -367,12 +367,12 @@ export class Game {
       }
     }
 
-    // Bag
+    // Basket
     if (this.basketImage.complete) {
       const ratio = this.basketImage.width / this.basketImage.height;
-      const dw = this.bag.width;
+      const dw = this.basket.width;
       const dh = dw / ratio;
-      ctx.drawImage(this.basketImage, this.bag.x, this.bag.y, dw, dh);
+      ctx.drawImage(this.basketImage, this.basket.x, this.basket.y, dw, dh);
     }
 
     // Floating text
