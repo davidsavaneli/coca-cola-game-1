@@ -13,7 +13,7 @@ export const defaultConfig: GameConfig = {
     width: 120,
     height: 70,
     initialYOffset: 100,
-    basketImage: basketSrc, // <-- added basket image path here
+    basketImage: basketSrc,
   },
   item: {
     width: 60,

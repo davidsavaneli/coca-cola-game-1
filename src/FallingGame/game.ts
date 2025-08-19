@@ -344,7 +344,10 @@ export class Game {
   handleDrag(x: number) {
     const target = Math.max(
       0,
-      Math.min(x - this.basket.width / 2, this.canvasCssWidth - this.basket.width)
+      Math.min(
+        x - this.basket.width / 2,
+        this.canvasCssWidth - this.basket.width
+      )
     );
     this.basket.x += (target - this.basket.x) * 0.2;
     this.basket.targetX = target;

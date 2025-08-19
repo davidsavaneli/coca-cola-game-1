@@ -302,21 +302,11 @@ canvas {
 .spinner {
   width: 64px;
   height: 64px;
-  border: 6px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #fff;
+  border: 6px solid rgba(0, 0, 0, 0.4);
+  border-top-color: #000;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto;
-}
-
-.loadingLabel {
-  color: #fff;
-  font-size: 18px;
-  margin-top: 12px;
-  text-align: center;
-  font-weight: 800;
-  text-transform: uppercase;
-  font-family: "Nunito", sans-serif;
 }
 
 @keyframes spin {
