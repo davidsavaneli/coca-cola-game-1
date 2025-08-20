@@ -2,7 +2,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
 import { defaultConfig } from "./config";
-import { SoundManager } from "./sound";
 
 import LoadingScreen from "./screens/LoaderScreen";
 import StartGameScreen from "./screens/StartGameScreen";
@@ -14,20 +13,16 @@ import styles from "./styles.module.css";
 import bgImgSrc from "./assets/images/background.webp";
 import logoSrc from "./assets/images/logo.svg";
 import playIconSrc from "./assets/images/play-btn-icon.svg";
-import soundOnIconSrc from "./assets/images/sound-on-icon.svg";
-import soundOffIconSrc from "./assets/images/sound-off-icon.svg";
 import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
-  const soundRef = useRef<SoundManager | null>(new SoundManager());
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
-  const [muted, setMuted] = useState(true);
 
   const sendPostMessage = (eventName: string, payload: any = null) => {
     window.postMessage({ event: eventName, payload: payload });
@@ -72,21 +67,12 @@ const Index = () => {
       urls.add(bgImgSrc);
       urls.add(logoSrc);
       urls.add(playIconSrc);
-      urls.add(soundOnIconSrc);
-      urls.add(soundOffIconSrc);
       urls.add(playAgainIconSrc);
       // Game assets from config
       urls.add(defaultConfig.basket.basketImage);
       defaultConfig.item.items.forEach((it) => urls.add(it.image));
 
       await preloadImages([...urls]);
-
-      // Warm up audio files (no playback yet)
-      try {
-        await soundRef.current?.warmup();
-      } catch {
-        // ignore
-      }
 
       try {
         // Load commonly used font variants across multiple sizes
@@ -126,12 +112,7 @@ const Index = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const game = new Game(
-      canvas,
-      defaultConfig,
-      handleUpdateState,
-      soundRef.current ?? undefined
-    );
+    const game = new Game(canvas, defaultConfig, handleUpdateState);
     gameRef.current = game;
     game.start();
 
@@ -152,22 +133,6 @@ const Index = () => {
     }
   }, [gameOver, score]);
 
-  const handleToggleMute = useCallback(() => {
-    setMuted((prev) => {
-      const next = !prev;
-      const sound = soundRef.current;
-      if (sound) {
-        // Unlock audio on first toggle, then play/stop immediately
-        sound.preload().then(() => {
-          sound.setMuted(next);
-          if (next) sound.stopTheme();
-          else sound.playTheme();
-        });
-      }
-      return next;
-    });
-  }, []);
-
   const handleStartGame = useCallback(() => {
     gameRef.current?.start();
     setGameOver(false);
@@ -178,8 +143,6 @@ const Index = () => {
     gameRef.current?.stop();
     setStarted(false);
     setGameOver(false);
-    soundRef.current?.stopTheme();
-    setMuted(true);
   }, []);
 
   const handleRestartGame = useCallback(() => {
@@ -224,12 +187,7 @@ const Index = () => {
       {!assetsLoaded ? (
         <LoadingScreen />
       ) : !started ? (
-        <StartGameScreen
-          onStart={handleStartGame}
-          muted={muted}
-          onToggleMute={handleToggleMute}
-          onHowToPlay={() => console.log("onHowToPlay")}
-        />
+        <StartGameScreen onStart={handleStartGame} />
       ) : gameOver ? (
         <GameOverScreen
           onRestart={handleRestartGame}

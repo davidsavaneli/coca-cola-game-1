@@ -1,7 +1,7 @@
 import styles from "../styles.module.css";
 import playIconSrc from "../assets/images/play-btn-icon.svg";
-import soundOnIconSrc from "../assets/images/sound-on-icon.svg";
-import soundOffIconSrc from "../assets/images/sound-off-icon.svg";
+// import soundOnIconSrc from "../assets/images/sound-on-icon.svg";
+// import soundOffIconSrc from "../assets/images/sound-off-icon.svg";
 
 interface Props {
   onStart: () => void;
@@ -12,8 +12,8 @@ interface Props {
 
 const StartGameScreen = ({
   onStart,
-  muted,
-  onToggleMute,
+  //   muted,
+  //   onToggleMute,
   onHowToPlay,
 }: Props) => (
   <>
@@ -25,12 +25,12 @@ const StartGameScreen = ({
       <div className={styles.howToPlayBtn} onClick={onHowToPlay}>
         How to play?
       </div>
-      <img
+      {/* <img
         src={muted ? soundOffIconSrc : soundOnIconSrc}
         alt={muted ? "Sounf off" : "Sound on"}
         className={styles.muteUnmuteIcon}
         onClick={onToggleMute}
-      />
+      /> */}
     </div>
   </>
 );

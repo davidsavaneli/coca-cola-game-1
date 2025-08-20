@@ -1,5 +1,4 @@
 import type { FloatingText, Basket, Item, GameConfig } from "./types";
-import type { SoundAPI } from "./types";
 
 export class Game {
   // Rendering
@@ -39,9 +38,6 @@ export class Game {
   basketImage: HTMLImageElement;
   imgCache = new Map<string, HTMLImageElement>();
 
-  // Sound
-  sound?: SoundAPI;
-
   // Handlers
   handleResize = () => {
     this.setupCanvas();
@@ -73,14 +69,12 @@ export class Game {
       score: number;
       timer: number;
       gameOver: boolean;
-    }) => void,
-    sound?: SoundAPI
+    }) => void
   ) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.config = config;
     this.onUpdateState = onUpdateState;
-    this.sound = sound;
 
     this.gameSpeed = this.config.gameSpeed.base;
 
@@ -131,8 +125,6 @@ export class Game {
   gameOver() {
     if (this.isGameOver) return;
     this.isGameOver = true;
-    // sound effect
-    this.sound?.playGameOver();
     // Disable input immediately on game over
     this.canvas.removeEventListener("touchstart", this.handleTouchStart);
     this.canvas.removeEventListener("touchmove", this.handleTouchMove);
@@ -319,8 +311,6 @@ export class Game {
           this.gameOver();
           return true; // keep bomb to render momentarily
         }
-        // play catch sfx
-        this.sound?.playCatch();
         this.score += it.value;
         this.floatingTexts.push({
           x: it.x + it.width / 2,

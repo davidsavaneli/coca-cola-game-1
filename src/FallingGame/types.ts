@@ -54,12 +54,3 @@ export interface GameConfig {
     accelerationFactor: number;
   };
 }
-
-// Sound API used by the Game for triggering sound effects
-export interface SoundAPI {
-  setMuted(muted: boolean): void;
-  isMuted(): boolean;
-  preload(): Promise<void>;
-  playCatch(): void;
-  playGameOver(): void;
-}
