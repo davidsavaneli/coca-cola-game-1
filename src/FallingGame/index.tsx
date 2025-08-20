@@ -34,8 +34,6 @@ const Index = () => {
     window.postMessage({ event: eventName, payload: payload });
   };
 
-  sendPostMessage("GET_SCORE", score);
-
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
       setScore(score);
@@ -92,11 +90,18 @@ const Index = () => {
       }
 
       try {
-        // Load commonly used font variants
-        await Promise.all([
-          document.fonts.load("700 16px 'Agdasima'"),
-          document.fonts.load("900 30px 'Nunito'"),
-        ]);
+        // Load commonly used font variants across multiple sizes
+        const sizes = Array.from(new Set([14, 16, 20, 24, 30, 56])).map(
+          (n) => `${n}px`
+        );
+
+        await Promise.all(
+          sizes.flatMap((sz) => [
+            document.fonts.load(`700 ${sz} 'Agdasima'`),
+            document.fonts.load(`900 ${sz} 'Nunito'`),
+            document.fonts.load(`600 ${sz} 'Nunito'`),
+          ])
+        );
         await document.fonts.ready;
       } catch {
         // ignore font load errors
@@ -141,6 +146,8 @@ const Index = () => {
   useEffect(() => {
     if (gameOver) {
       console.log(score);
+
+      sendPostMessage("GAME_OVER", score);
       gameRef.current?.stop();
       gameRef.current = null;
     }
@@ -183,23 +190,23 @@ const Index = () => {
     setStarted(true);
   }, []);
 
-  // const handlePauseGame = useCallback(() => {
-  //   gameRef.current?.pause();
-  // }, []);
+  const handlePauseGame = useCallback(() => {
+    gameRef.current?.pause();
+  }, []);
 
-  // const handleResumeGame = useCallback(() => {
-  //   gameRef.current?.resume();
-  // }, []);
+  const handleResumeGame = useCallback(() => {
+    gameRef.current?.resume();
+  }, []);
 
   return (
     <div className={styles.scene}>
-      {/* <div style={{ position: "absolute", zIndex: 5 }}>
+      <div style={{ position: "absolute", zIndex: 5 }}>
         <button onClick={handlePauseGame}>pause</button>
         <button onClick={handleResumeGame}>resume</button>
         <button onClick={handleRestartGame}>restart</button>
         <button onClick={handleCloseGame}>stop</button>
         <button onClick={handleStartGame}>start</button>
-      </div> */}
+      </div>
 
       {started && <div className={styles.backdrop}></div>}
 
