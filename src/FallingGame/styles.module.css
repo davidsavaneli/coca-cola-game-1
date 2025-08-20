@@ -130,6 +130,15 @@ p {
   z-index: 2;
 }
 
+.playAgainBtnBox {
+  position: absolute;
+  bottom: 197px;
+  bottom: 20.5%;
+  left: 0;
+  right: 0;
+  margin: auto;
+}
+
 .playBtn,
 .playAgainBtn {
   position: absolute;

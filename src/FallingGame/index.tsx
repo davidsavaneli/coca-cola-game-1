@@ -143,16 +143,16 @@ const Index = () => {
   }, []);
 
   const handleCloseGame = useCallback(() => {
-    gameRef.current?.stop();
-    setStarted(false);
-    setGameOver(false);
+    // gameRef.current?.stop();
+    // setStarted(false);
+    // setGameOver(false);
   }, []);
 
   const handleRestartGame = useCallback(() => {
-    gameRef.current?.reset();
-    gameRef.current?.start();
-    setGameOver(false);
-    setStarted(true);
+    // gameRef.current?.reset();
+    // gameRef.current?.start();
+    // setGameOver(false);
+    // setStarted(true);
   }, []);
 
   // const handlePauseGame = useCallback(() => {
