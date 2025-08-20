@@ -76,8 +76,9 @@ p {
   position: absolute;
   top: 68px;
   top: 7%;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: auto;
   width: 96px;
   height: auto;
   object-fit: contain;
@@ -89,10 +90,11 @@ p {
 
 .scoreBox {
   position: absolute;
-  left: 50%;
   top: 113px;
   top: 11.8%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: auto;
   font-size: 14px;
   z-index: 4;
   pointer-events: none;
@@ -140,8 +142,9 @@ p {
   box-shadow: 2.82px 2.82px 13.62px 0px #905610;
   border-radius: 24px;
   border: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: auto;
   padding: 20px 20px 20px 16px;
   color: #fff;
   display: flex;
@@ -179,8 +182,9 @@ p {
   position: absolute;
   bottom: 132px;
   bottom: 14%;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: auto;
   color: #b70316;
   font-size: 24px;
   text-transform: uppercase;

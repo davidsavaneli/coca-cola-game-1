@@ -2,6 +2,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
 import { defaultConfig } from "./config";
+import { motion } from "framer-motion";
 
 import LoadingScreen from "./screens/LoaderScreen";
 import StartGameScreen from "./screens/StartGameScreen";
@@ -134,9 +135,11 @@ const Index = () => {
   }, [gameOver, score]);
 
   const handleStartGame = useCallback(() => {
-    gameRef.current?.start();
-    setGameOver(false);
-    setStarted(true);
+    setTimeout(() => {
+      gameRef.current?.start();
+      setGameOver(false);
+      setStarted(true);
+    }, 150);
   }, []);
 
   const handleCloseGame = useCallback(() => {
@@ -169,18 +172,36 @@ const Index = () => {
         <button onClick={handleCloseGame}>stop</button>
         <button onClick={handleStartGame}>start</button>
       </div> */}
-
-      {started && <div className={styles.backdrop}></div>}
-
       <img src={bgImgSrc} alt="" className={styles.bgImage} />
+
+      {started && (
+        <motion.div
+          className={styles.backdrop}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        />
+      )}
 
       {(started || gameOver) && (
         <>
-          <img src={logoSrc} alt="Logo" className={styles.logo} />
-          <div className={styles.scoreBox}>
+          <motion.img
+            src={logoSrc}
+            alt="Logo"
+            className={styles.logo}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          />
+          <motion.div
+            className={styles.scoreBox}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.2, delay: 0.6, ease: "easeOut" }}
+          >
             <div className={styles.score}>{score}</div>
             <div className={styles.scoreLabel}>Points</div>
-          </div>
+          </motion.div>
         </>
       )}
 
