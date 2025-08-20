@@ -151,6 +151,9 @@ const Index = () => {
       gameRef.current = null;
     }
   }, [gameOver, score]);
+  
+  sendPostMessage("GAME_OVER_2", score);
+  sendPostMessage("TEST", 12);
 
   const handleToggleMute = useCallback(() => {
     setMuted((prev) => {
