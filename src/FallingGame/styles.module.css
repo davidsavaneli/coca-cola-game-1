@@ -134,8 +134,8 @@ p {
   position: absolute;
   bottom: 197px;
   bottom: 20.5%;
-  left: 0;
-  right: 0;
+  left: 30px;
+  right: 30px;
   margin: auto;
 }
 
@@ -201,6 +201,7 @@ p {
   font-weight: 900;
   text-align: center;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .closeGameBtn {
