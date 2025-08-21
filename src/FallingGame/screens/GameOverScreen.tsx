@@ -12,18 +12,7 @@ interface Props {
 }
 
 const GameOverScreen = ({ onRestart, onCloseGame, noAttempts }: Props) => (
-  <motion.div
-    className={styles.gameOverScreen}
-    // variants={{
-    //   hidden: { opacity: 0 },
-    //   show: {
-    //     opacity: 1,
-    //     transition: { staggerChildren: 0.1, delayChildren: 0.05 },
-    //   },
-    // }}
-    // initial="hidden"
-    // animate="show"
-  >
+  <div className={styles.gameOverScreen}>
     {noAttempts ? (
       <motion.div
         className={styles.noAttemptsMessage}
@@ -103,7 +92,7 @@ const GameOverScreen = ({ onRestart, onCloseGame, noAttempts }: Props) => (
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
     />
-  </motion.div>
+  </div>
 );
 
 export default GameOverScreen;
