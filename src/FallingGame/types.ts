@@ -29,11 +29,12 @@ export interface Basket {
 }
 
 export interface GameConfig {
+  backgroundImage: string;
   basket: {
     width: number;
     height: number;
     initialYOffset: number;
-    basketImage: string; // <--- basket image path here
+    basketImage: string;
   };
   item: {
     width: number;

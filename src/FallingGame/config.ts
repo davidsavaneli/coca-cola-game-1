@@ -1,5 +1,6 @@
 import type { GameConfig } from "./types";
 
+import backgroundImageSrc from "./assets/images/background.webp";
 import bombSrc from "./assets/images/bomb.png";
 import item1Src from "./assets/images/item-1.png";
 import item2Src from "./assets/images/item-2.png";
@@ -9,6 +10,7 @@ import item5Src from "./assets/images/item-5.png";
 import basketSrc from "./assets/images/basket.png";
 
 export const defaultConfig: GameConfig = {
+  backgroundImage: backgroundImageSrc,
   basket: {
     width: 120,
     height: 70,

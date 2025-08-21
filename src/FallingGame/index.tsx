@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
 import { defaultConfig } from "./config";
@@ -159,13 +158,13 @@ const Index = () => {
     }, 150);
   }, []);
 
-  // const handlePauseGame = useCallback(() => {
-  //   gameRef.current?.pause();
-  // }, []);
+  const handlePauseGame = useCallback(() => {
+    gameRef.current?.pause();
+  }, []);
 
-  // const handleResumeGame = useCallback(() => {
-  //   gameRef.current?.resume();
-  // }, []);
+  const handleResumeGame = useCallback(() => {
+    gameRef.current?.resume();
+  }, []);
 
   return (
     <div className={styles.scene}>
@@ -176,7 +175,11 @@ const Index = () => {
         <button onClick={handleCloseGame}>stop</button>
         <button onClick={handleStartGame}>start</button>
       </div> */}
-      <img src={bgImgSrc} alt="" className={styles.bgImage} />
+      <img
+        src={defaultConfig.backgroundImage}
+        alt=""
+        className={styles.bgImage}
+      />
 
       <AnimatePresence mode="wait">
         {started && (
