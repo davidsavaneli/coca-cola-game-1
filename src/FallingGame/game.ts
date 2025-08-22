@@ -10,6 +10,16 @@ export class Game {
   basket: Basket;
   items: Item[] = [];
   floatingTexts: FloatingText[] = [];
+  // Track caught item animations (drop + fade-out)
+  private caughtAnims: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    imageElement: HTMLImageElement;
+    t: number; // elapsed ms
+    duration: number; // total ms
+  }[] = [];
 
   // Game state
   score = 0;
@@ -140,6 +150,7 @@ export class Game {
   reset() {
     this.items = [];
     this.floatingTexts = [];
+    this.caughtAnims = [];
     this.score = 0;
     this.timer = 0;
     this.isPaused = false;
@@ -247,6 +258,13 @@ export class Game {
     });
 
     this.checkCollisions();
+
+    // Advance caught item animations
+    this.caughtAnims = this.caughtAnims.filter((a) => {
+      a.t += dtMs;
+      return a.t < a.duration;
+    });
+
     this.spawnItems(dtMs);
     this.removeOffScreenItems();
 
@@ -311,6 +329,7 @@ export class Game {
           this.gameOver();
           return true; // keep bomb to render momentarily
         }
+        // Score and visual feedback
         this.score += it.value;
         this.floatingTexts.push({
           x: it.x + it.width / 2,
@@ -319,7 +338,19 @@ export class Game {
           alpha: 1,
           lifetime: 1000,
         });
-        return false; // remove collected item
+        // Start drop + fade animation for the caught item
+        if (it.imageElement) {
+          this.caughtAnims.push({
+            x: it.x,
+            y: it.y,
+            width: it.width,
+            height: it.height,
+            imageElement: it.imageElement,
+            t: 0,
+            duration: 200, // ms
+          });
+        }
+        return false; // remove collected item from active list
       }
 
       if (it.type === "point" && it.y > this.canvasCssHeight + it.height) {
@@ -353,6 +384,11 @@ export class Game {
     this.basket.targetX = target;
   }
 
+  // Easing helpers for animations
+  private easeOutQuad(p: number) {
+    return 1 - (1 - p) * (1 - p);
+  }
+
   // Rendering -------------------------------------------------
   draw() {
     if (!this.ctx) return;
@@ -360,7 +396,7 @@ export class Game {
 
     ctx.clearRect(0, 0, this.canvasCssWidth, this.canvasCssHeight);
 
-    // Items
+    // Items (active falling)
     for (const it of this.items) {
       if (it.imageElement && it.imageElement.complete) {
         const ratio = it.imageElement.width / it.imageElement.height;
@@ -368,6 +404,28 @@ export class Game {
         const dh = dw / ratio;
         ctx.drawImage(it.imageElement, it.x, it.y, dw, dh);
       }
+    }
+
+    // Caught item animations (drop + fade-out)
+    for (const a of this.caughtAnims) {
+      const img = a.imageElement;
+      if (!img.complete) continue;
+      const p = Math.min(1, a.t / a.duration);
+      const alpha = 1 - p; // fade out
+      const scale = 1 - 0.4 * this.easeOutQuad(p); // scale down from 1 -> ~0.6
+      const lift = 25 * this.easeOutQuad(p); // progressive downward motion
+
+      const ratio = img.width / img.height;
+      const dw = a.width;
+      const dh = dw / ratio;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      // Translate to center, apply scale and progressive downward shift
+      ctx.translate(a.x + dw / 2, a.y + dh / 2 + lift);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+      ctx.restore();
     }
 
     // Basket
