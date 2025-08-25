@@ -41,9 +41,9 @@ const Index = () => {
     let cancelled = false;
 
     // minimum loader time
-    const MIN_LOADER_MS = 500;
-    const sleep = (ms: number) =>
-      new Promise<void>((resolve) => setTimeout(resolve, ms));
+    // const MIN_LOADER_MS = 500;
+    // const sleep = (ms: number) =>
+    //   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
     const preloadImages = (urls: string[]) =>
       Promise.all(
@@ -60,7 +60,7 @@ const Index = () => {
 
     const preload = async () => {
       // minimum loader time
-      const startedAt = performance.now();
+      // const startedAt = performance.now();
 
       const urls = new Set<string>();
       // UI assets
@@ -93,9 +93,9 @@ const Index = () => {
       }
 
       // minimum loader time
-      const elapsed = performance.now() - startedAt;
-      const remain = Math.max(0, MIN_LOADER_MS - elapsed);
-      if (remain > 0) await sleep(remain);
+      // const elapsed = performance.now() - startedAt;
+      // const remain = Math.max(0, MIN_LOADER_MS - elapsed);
+      // if (remain > 0) await sleep(remain);
 
       if (!cancelled) setAssetsLoaded(true);
     };
