@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
-import { defaultConfig } from "./config";
+// Removed defaultConfig import to rely solely on remote config
 import { motion, AnimatePresence } from "framer-motion";
 
 import LoadingScreen from "./screens/LoaderScreen";
@@ -10,10 +10,10 @@ import GameOverScreen from "./screens/GameOverScreen";
 
 import styles from "./styles.module.css";
 
-import bgImgSrc from "./assets/images/background.webp";
 import logoSrc from "./assets/images/logo.svg";
 import playIconSrc from "./assets/images/play-btn-icon.svg";
 import playAgainIconSrc from "./assets/images/play-again-icon.svg";
+import type { GameConfig } from "./types";
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
@@ -23,6 +23,11 @@ const Index = () => {
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
+  // Initialize config as null; rely only on remote config
+  const [config, setConfig] = useState<GameConfig | null>(null);
+
+  const CONFIG_URL =
+    "https://cocacolaloyaltytest.azurewebsites.net/api/Game/config/df?Id=34";
 
   const sendPostMessage = (eventName: string, payload: any = null) => {
     window.postMessage({ event: eventName, payload: payload });
@@ -40,10 +45,24 @@ const Index = () => {
   useEffect(() => {
     let cancelled = false;
 
-    // minimum loader time
-    // const MIN_LOADER_MS = 500;
-    // const sleep = (ms: number) =>
-    //   new Promise<void>((resolve) => setTimeout(resolve, ms));
+    type ApiResponse = {
+      isError: boolean;
+      errorMessage: string | null;
+      response: GameConfig;
+    };
+
+    const sanitizeConfig = (raw: GameConfig): GameConfig => ({
+      ...raw,
+      basket: { ...raw.basket },
+      item: {
+        ...raw.item,
+        items: raw.item.items.map((it) => ({
+          ...it,
+          deduct: (it as any).deduct == null ? undefined : it.deduct,
+        })),
+      },
+      gameSpeed: { ...raw.gameSpeed },
+    });
 
     const preloadImages = (urls: string[]) =>
       Promise.all(
@@ -51,6 +70,7 @@ const Index = () => {
           (url) =>
             new Promise<void>((resolve) => {
               const img = new Image();
+              img.crossOrigin = "anonymous";
               img.onload = () => resolve();
               img.onerror = () => resolve();
               img.src = url;
@@ -59,27 +79,40 @@ const Index = () => {
       ).then(() => void 0);
 
     const preload = async () => {
-      // minimum loader time
-      // const startedAt = performance.now();
+      // No default fallback; only proceed if remote config is fetched successfully
+      let effectiveConfig: GameConfig | null = null;
+      try {
+        const res = await fetch(CONFIG_URL, { cache: "no-store" });
+        if (res.ok) {
+          const data: ApiResponse = await res.json();
+          if (!data.isError && data.response) {
+            effectiveConfig = sanitizeConfig(data.response);
+            if (!cancelled) setConfig(effectiveConfig);
+          }
+        }
+      } catch {
+        // ignore fetch errors; without remote config we won't start the game
+      }
+
+      if (!effectiveConfig) {
+        // Without remote config, keep showing the loader
+        return;
+      }
 
       const urls = new Set<string>();
-      // UI assets
-      urls.add(bgImgSrc);
       urls.add(logoSrc);
       urls.add(playIconSrc);
       urls.add(playAgainIconSrc);
-      // Game assets from config
-      urls.add(defaultConfig.basket.basketImage);
-      defaultConfig.item.items.forEach((it) => urls.add(it.image));
+      urls.add(effectiveConfig.backgroundImage);
+      urls.add(effectiveConfig.basket.basketImage);
+      effectiveConfig.item.items.forEach((it) => urls.add(it.image));
 
       await preloadImages([...urls]);
 
       try {
-        // Load commonly used font variants across multiple sizes
         const sizes = Array.from(new Set([14, 16, 20, 24, 30, 56])).map(
           (n) => `${n}px`
         );
-
         await Promise.all(
           sizes.flatMap((sz) => [
             document.fonts.load(`700 ${sz} 'Agdasima'`),
@@ -91,11 +124,6 @@ const Index = () => {
       } catch {
         // ignore font load errors
       }
-
-      // minimum loader time
-      // const elapsed = performance.now() - startedAt;
-      // const remain = Math.max(0, MIN_LOADER_MS - elapsed);
-      // if (remain > 0) await sleep(remain);
 
       if (!cancelled) setAssetsLoaded(true);
     };
@@ -111,8 +139,9 @@ const Index = () => {
     if (!started || gameOver) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
+    if (!config) return; // ensure we have remote config
 
-    const game = new Game(canvas, defaultConfig, handleUpdateState);
+    const game = new Game(canvas, config, handleUpdateState);
     gameRef.current = game;
     game.start();
 
@@ -120,7 +149,7 @@ const Index = () => {
       gameRef.current?.stop();
       gameRef.current = null;
     };
-  }, [started, gameOver, handleUpdateState]);
+  }, [started, gameOver, handleUpdateState, config]);
 
   // When game over, ensure any running game is stopped and cleared
   useEffect(() => {
@@ -156,13 +185,13 @@ const Index = () => {
     }, 150);
   }, []);
 
-  const handlePauseGame = useCallback(() => {
-    gameRef.current?.pause();
-  }, []);
+  // const handlePauseGame = useCallback(() => {
+  //   gameRef.current?.pause();
+  // }, []);
 
-  const handleResumeGame = useCallback(() => {
-    gameRef.current?.resume();
-  }, []);
+  // const handleResumeGame = useCallback(() => {
+  //   gameRef.current?.resume();
+  // }, []);
 
   return (
     <div className={styles.scene}>
@@ -173,11 +202,9 @@ const Index = () => {
         <button onClick={handleCloseGame}>stop</button>
         <button onClick={handleStartGame}>start</button>
       </div> */}
-      <img
-        src={defaultConfig.backgroundImage}
-        alt=""
-        className={styles.bgImage}
-      />
+      {config && (
+        <img src={config.backgroundImage} alt="" className={styles.bgImage} />
+      )}
 
       <AnimatePresence mode="wait">
         {started && (
