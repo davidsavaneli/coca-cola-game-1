@@ -1,4 +1,5 @@
 import type { FloatingText, Basket, Item, GameConfig } from "./types";
+import catchSoundUrl from "./assets/sounds/catch_sound.mp3";
 
 export class Game {
   // Rendering
@@ -20,6 +21,10 @@ export class Game {
     t: number; // elapsed ms
     duration: number; // total ms
   }[] = [];
+  // Audio pool for catch sound
+  private catchAudioPool: HTMLAudioElement[] = [];
+  private catchAudioIndex = 0;
+  private audioReady = false;
 
   // Game state
   score = 0;
@@ -56,6 +61,8 @@ export class Game {
 
   handleTouchStart = (e: TouchEvent) => {
     if (this.isPaused || this.isGameOver || e.touches.length === 0) return;
+    // Warm up audio on first user interaction to satisfy autoplay policies
+    this.warmupAudio();
     const rect = this.canvas.getBoundingClientRect();
     this.handleDrag(e.touches[0].clientX - rect.left);
     e.preventDefault();
@@ -100,6 +107,9 @@ export class Game {
 
     // Images
     this.basketImage = this.getImage(this.basket.basketImage);
+
+    // Prepare audio elements (will be warmed up on first touch)
+    this.ensureCatchAudioPool();
 
     this.setupCanvas();
     this.reset();
@@ -338,6 +348,8 @@ export class Game {
           alpha: 1,
           lifetime: 1000,
         });
+        // Play catch sound
+        this.playCatchSound();
         // Start drop + fade animation for the caught item
         if (it.imageElement) {
           this.caughtAnims.push({
@@ -387,6 +399,55 @@ export class Game {
   // Easing helpers for animations
   private easeOutQuad(p: number) {
     return 1 - (1 - p) * (1 - p);
+  }
+
+  // Audio helpers --------------------------------------------
+  private ensureCatchAudioPool() {
+    if (this.catchAudioPool.length > 0) return;
+    const poolSize = 4;
+    for (let i = 0; i < poolSize; i++) {
+      const a = new Audio(catchSoundUrl);
+      a.preload = "auto";
+      a.volume = 0.6;
+      this.catchAudioPool.push(a);
+    }
+  }
+
+  public warmupAudio() {
+    this.ensureCatchAudioPool();
+    if (this.audioReady || this.catchAudioPool.length === 0) return;
+    const a = this.catchAudioPool[0];
+    const prevVol = a.volume;
+    a.volume = 0;
+    const played = a.play();
+    if (played && typeof (played as Promise<void>).then === "function") {
+      (played as Promise<void>)
+        .then(() => {
+          a.pause();
+          a.currentTime = 0;
+          a.volume = prevVol;
+          this.audioReady = true;
+        })
+        .catch(() => {
+          // Even if it fails, mark ready to avoid repeating attempts
+          this.audioReady = true;
+        });
+    } else {
+      this.audioReady = true;
+    }
+  }
+
+  private playCatchSound() {
+    this.ensureCatchAudioPool();
+    if (this.catchAudioPool.length === 0) return;
+    const a = this.catchAudioPool[this.catchAudioIndex];
+    this.catchAudioIndex = (this.catchAudioIndex + 1) % this.catchAudioPool.length;
+    try {
+      a.currentTime = 0;
+      void a.play();
+    } catch {
+      // ignore
+    }
   }
 
   // Rendering -------------------------------------------------
