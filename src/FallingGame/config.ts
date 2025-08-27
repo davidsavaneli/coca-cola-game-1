@@ -9,7 +9,6 @@ import item4Src from "./assets/images/item-4.png";
 import item5Src from "./assets/images/item-5.png";
 import basketSrc from "./assets/images/basket.png";
 
-
 export const defaultConfig: GameConfig = {
   backgroundImage: backgroundImageSrc,
   basket: {
