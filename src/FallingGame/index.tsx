@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
-// Removed defaultConfig import to rely solely on remote config
 import { motion, AnimatePresence } from "framer-motion";
 
 import LoadingScreen from "./screens/LoaderScreen";
@@ -23,7 +22,6 @@ const Index = () => {
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
-  // Initialize config as null; rely only on remote config
   const [config, setConfig] = useState<GameConfig | null>(null);
 
   const CONFIG_URL =
@@ -41,7 +39,6 @@ const Index = () => {
     []
   );
 
-  // Preload images and fonts before showing StartGameScreen
   useEffect(() => {
     let cancelled = false;
 
@@ -79,7 +76,6 @@ const Index = () => {
       ).then(() => void 0);
 
     const preload = async () => {
-      // No default fallback; only proceed if remote config is fetched successfully
       let effectiveConfig: GameConfig | null = null;
       try {
         const res = await fetch(CONFIG_URL, { cache: "no-store" });
@@ -134,12 +130,11 @@ const Index = () => {
     };
   }, []);
 
-  // Create/start the game whenever the canvas is mounted (started && !gameOver)
   useEffect(() => {
     if (!started || gameOver) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    if (!config) return; // ensure we have remote config
+    if (!config) return;
 
     const game = new Game(canvas, config, handleUpdateState);
     gameRef.current = game;
@@ -151,7 +146,6 @@ const Index = () => {
     };
   }, [started, gameOver, handleUpdateState, config]);
 
-  // When game over, ensure any running game is stopped and cleared
   useEffect(() => {
     if (gameOver) {
       sendPostMessage("GAME_OVER", score);
@@ -195,13 +189,6 @@ const Index = () => {
 
   return (
     <div className={styles.scene}>
-      {/* <div style={{ position: "absolute", zIndex: 5 }}>
-        <button onClick={handlePauseGame}>pause</button>
-        <button onClick={handleResumeGame}>resume</button>
-        <button onClick={handleRestartGame}>restart</button>
-        <button onClick={handleCloseGame}>stop</button>
-        <button onClick={handleStartGame}>start</button>
-      </div> */}
       {config && (
         <img src={config.backgroundImage} alt="" className={styles.bgImage} />
       )}
