@@ -42,18 +42,22 @@ const Index = () => {
       response: GameConfig;
     };
 
-    const sanitizeConfig = (raw: GameConfig): GameConfig => ({
-      ...raw,
-      basket: { ...raw.basket },
-      item: {
-        ...raw.item,
-        items: raw.item.items.map((it) => ({
-          ...it,
-          deduct: (it as any).deduct == null ? undefined : it.deduct,
-        })),
-      },
-      gameSpeed: { ...raw.gameSpeed },
-    });
+    const sanitizeConfig = (raw: GameConfig): GameConfig => {
+      // Remove first item from items array
+      const items = raw.item.items.slice(1);
+      return {
+        ...raw,
+        basket: { ...raw.basket },
+        item: {
+          ...raw.item,
+          items: items.map((it) => ({
+            ...it,
+            deduct: (it as any).deduct == null ? undefined : it.deduct,
+          })),
+        },
+        gameSpeed: { ...raw.gameSpeed },
+      };
+    };
 
     const preloadImages = (urls: string[]) =>
       Promise.all(
