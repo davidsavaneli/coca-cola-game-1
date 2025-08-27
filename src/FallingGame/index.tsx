@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
 import { motion, AnimatePresence } from "framer-motion";
+import CryptoJS from "crypto-js";
 
 import LoadingScreen from "./screens/LoaderScreen";
 import StartGameScreen from "./screens/StartGameScreen";
@@ -24,8 +25,8 @@ const Index = () => {
   const [started, setStarted] = useState(false);
   const [config, setConfig] = useState<GameConfig | null>(null);
 
-  const CONFIG_URL =
-    "https://cocacolaloyaltytest.azurewebsites.net/api/Game/config/df?Id=34";
+  const CONFIG_URL = import.meta.env.VITE_GAME_CONFIG_URL;
+  const ENCRYPT_KEY = import.meta.env.VITE_ENCRYPT_KEY;
 
   const sendPostMessage = (eventName: string, payload: any = null) => {
     window.postMessage({ event: eventName, payload: payload });
@@ -153,7 +154,8 @@ const Index = () => {
 
   useEffect(() => {
     if (gameOver) {
-      sendPostMessage("GAME_OVER", score);
+      const encryptedScore = encryptScore(score, ENCRYPT_KEY);
+      sendPostMessage("GAME_OVER", encryptedScore);
       gameRef.current?.stop();
       gameRef.current = null;
     }
@@ -251,5 +253,9 @@ const Index = () => {
     </div>
   );
 };
+
+function encryptScore(score: number, key: string): string {
+  return CryptoJS.AES.encrypt(score.toString(), key).toString();
+}
 
 export default Index;
