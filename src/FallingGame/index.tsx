@@ -86,11 +86,16 @@ const Index = () => {
             if (!cancelled) setConfig(effectiveConfig);
           }
         }
+        if (!res.ok) {
+          sendPostMessage("CONFIG_ERROR");
+          return;
+        }
       } catch {
         // ignore fetch errors; without remote config we won't start the game
       }
 
       if (!effectiveConfig) {
+        console.log("222");
         // Without remote config, keep showing the loader
         return;
       }
@@ -164,6 +169,7 @@ const Index = () => {
 
   const handleCloseGame = useCallback(() => {
     setTimeout(() => {
+      sendPostMessage("CLOSE_GAME");
       gameRef.current?.stop();
       setStarted(false);
       setGameOver(false);
@@ -230,7 +236,10 @@ const Index = () => {
       {!assetsLoaded ? (
         <LoadingScreen />
       ) : !started ? (
-        <StartGameScreen onStart={handleStartGame} />
+        <StartGameScreen
+          onStart={handleStartGame}
+          onHowToPlay={() => sendPostMessage("HOW_TO_PLAY")}
+        />
       ) : gameOver ? (
         <GameOverScreen
           onRestart={handleRestartGame}
