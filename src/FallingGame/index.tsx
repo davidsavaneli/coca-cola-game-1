@@ -25,13 +25,6 @@ const Index = () => {
   const [started, setStarted] = useState(false);
   const [config, setConfig] = useState<GameConfig | null>(null);
 
-  const CONFIG_URL = import.meta.env.VITE_GAME_CONFIG_URL;
-  const ENCRYPT_KEY = import.meta.env.VITE_ENCRYPT_KEY;
-
-  const sendPostMessage = (eventName: string, payload: any = null) => {
-    window.postMessage({ event: eventName, payload: payload });
-  };
-
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
       setScore(score);
@@ -254,8 +247,15 @@ const Index = () => {
   );
 };
 
-function encryptScore(score: number, key: string): string {
-  return CryptoJS.AES.encrypt(score.toString(), key).toString();
-}
-
 export default Index;
+
+const CONFIG_URL = import.meta.env.VITE_GAME_CONFIG_URL;
+const ENCRYPT_KEY = import.meta.env.VITE_ENCRYPT_KEY;
+
+const encryptScore = (score: number, key: string): string => {
+  return CryptoJS.AES.encrypt(score.toString(), key).toString();
+};
+
+const sendPostMessage = (eventName: string, payload: any = null) => {
+  window.postMessage({ event: eventName, payload: payload });
+};
