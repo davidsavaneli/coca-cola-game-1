@@ -1,6 +1,4 @@
 import type { FloatingText, Basket, Item, GameConfig } from "./types";
-import catchSoundUrl from "./assets/sounds/catch_sound.mp3";
-import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
 
 export class Game {
   // Rendering
@@ -22,13 +20,6 @@ export class Game {
     t: number; // elapsed ms
     duration: number; // total ms
   }[] = [];
-  // Audio pool for catch sound
-  private catchAudioPool: HTMLAudioElement[] = [];
-  private catchAudioIndex = 0;
-  private audioReady = false;
-  // Game over audio pool
-  private gameOverAudioPool: HTMLAudioElement[] = [];
-  private gameOverAudioIndex = 0;
 
   // Game state
   score = 0;
@@ -65,8 +56,6 @@ export class Game {
 
   handleTouchStart = (e: TouchEvent) => {
     if (this.isPaused || this.isGameOver || e.touches.length === 0) return;
-    // Warm up audio on first user interaction to satisfy autoplay policies
-    this.warmupAudio();
     const rect = this.canvas.getBoundingClientRect();
     this.handleDrag(e.touches[0].clientX - rect.left);
     e.preventDefault();
@@ -113,8 +102,6 @@ export class Game {
     this.basketImage = this.getImage(this.basket.basketImage);
 
     // Prepare audio elements
-    this.ensureCatchAudioPool();
-    this.ensureGameOverAudioPool();
 
     this.setupCanvas();
     this.reset();
@@ -150,8 +137,6 @@ export class Game {
   gameOver() {
     if (this.isGameOver) return;
     this.isGameOver = true;
-    // Play game over sound
-    this.playGameOverSound();
     // Disable input immediately on game over
     this.canvas.removeEventListener("touchstart", this.handleTouchStart);
     this.canvas.removeEventListener("touchmove", this.handleTouchMove);
@@ -355,8 +340,6 @@ export class Game {
           alpha: 1,
           lifetime: 1000,
         });
-        // Play catch sound
-        this.playCatchSound();
         // Start drop + fade animation for the caught item
         if (it.imageElement) {
           this.caughtAnims.push({
@@ -409,99 +392,7 @@ export class Game {
   }
 
   // Audio helpers --------------------------------------------
-  private ensureCatchAudioPool() {
-    if (this.catchAudioPool.length > 0) return;
-    const poolSize = 4;
-    for (let i = 0; i < poolSize; i++) {
-      const a = new Audio(catchSoundUrl);
-      a.preload = "auto";
-      a.volume = 0.6;
-      this.catchAudioPool.push(a);
-    }
-  }
-
-  private ensureGameOverAudioPool() {
-    if (this.gameOverAudioPool.length > 0) return;
-    const poolSize = 2;
-    for (let i = 0; i < poolSize; i++) {
-      const a = new Audio(gameOverSoundUrl);
-      a.preload = "auto";
-      a.volume = 0.8;
-      this.gameOverAudioPool.push(a);
-    }
-  }
-
-  public warmupAudio() {
-    this.ensureCatchAudioPool();
-    this.ensureGameOverAudioPool();
-    if (this.audioReady || this.catchAudioPool.length === 0) return;
-    const a = this.catchAudioPool[0];
-    const prevVol = a.volume;
-    a.volume = 0;
-    const played = a.play();
-    if (played && typeof (played as Promise<void>).then === "function") {
-      (played as Promise<void>)
-        .then(() => {
-          a.pause();
-          a.currentTime = 0;
-          a.volume = prevVol;
-          // also unlock game over audio
-          const go = this.gameOverAudioPool[0];
-          if (go) {
-            const goPrev = go.volume;
-            go.volume = 0;
-            const gp = go.play();
-            if (gp && typeof (gp as Promise<void>).then === "function") {
-              (gp as Promise<void>)
-                .then(() => {
-                  go.pause();
-                  go.currentTime = 0;
-                  go.volume = goPrev;
-                  this.audioReady = true;
-                })
-                .catch(() => {
-                  this.audioReady = true;
-                });
-            } else {
-              this.audioReady = true;
-            }
-          } else {
-            this.audioReady = true;
-          }
-        })
-        .catch(() => {
-          this.audioReady = true;
-        });
-    } else {
-      this.audioReady = true;
-    }
-  }
-
-  private playCatchSound() {
-    this.ensureCatchAudioPool();
-    if (this.catchAudioPool.length === 0) return;
-    const a = this.catchAudioPool[this.catchAudioIndex];
-    this.catchAudioIndex = (this.catchAudioIndex + 1) % this.catchAudioPool.length;
-    try {
-      a.currentTime = 0;
-      void a.play();
-    } catch {
-      // ignore play errors
-    }
-  }
-
-  private playGameOverSound() {
-    this.ensureGameOverAudioPool();
-    if (this.gameOverAudioPool.length === 0) return;
-    const a = this.gameOverAudioPool[this.gameOverAudioIndex];
-    this.gameOverAudioIndex = (this.gameOverAudioIndex + 1) % this.gameOverAudioPool.length;
-    try {
-      a.currentTime = 0;
-      void a.play();
-    } catch {
-      // ignore play errors
-    }
-  }
+  // Audio removed: no-op stubs retained for clarity (none)
 
   // Rendering -------------------------------------------------
   draw() {
