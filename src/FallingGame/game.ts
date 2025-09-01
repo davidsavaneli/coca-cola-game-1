@@ -340,6 +340,10 @@ export class Game {
           alpha: 1,
           lifetime: 1000,
         });
+
+        // Notify host that a point was collected
+        sendPostMessage("POINT_COLLECTED");
+
         // Start drop + fade animation for the caught item
         if (it.imageElement) {
           this.caughtAnims.push({
@@ -452,3 +456,8 @@ export class Game {
     }
   }
 }
+
+// Local helper to communicate with host/container
+const sendPostMessage = (eventName: string, payload: any = null) => {
+  window.postMessage({ event: eventName, payload });
+};
