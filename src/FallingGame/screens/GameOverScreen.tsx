@@ -6,7 +6,7 @@ import noAttemptsIconSrc from "../assets/images/no-attempts-icon.svg"; // <-- ad
 import { motion } from "framer-motion";
 
 interface Props {
-  noAttempts?: boolean; // <-- added optional prop
+  noAttempts?: boolean;
   onRestart: () => void;
   onCloseGame: () => void;
 }
