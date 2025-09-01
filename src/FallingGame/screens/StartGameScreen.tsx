@@ -5,25 +5,28 @@ import { motion } from "framer-motion";
 interface Props {
   onStart: () => void;
   onHowToPlay?: () => void;
+  noAttempts?: boolean;
 }
 
-const StartGameScreen = ({ onStart, onHowToPlay }: Props) => (
+const StartGameScreen = ({ onStart, onHowToPlay, noAttempts }: Props) => (
   <>
     <div className={styles.startGameScreen}>
-      <motion.button
-        className={styles.playBtn}
-        onClick={onStart}
-        whileTap={{
-          scale: 0.9,
-          transition: { duration: 0.1, ease: "easeOut" },
-        }}
-        initial={{ opacity: 0, scale: 0.6 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.8, type: "spring" }}
-      >
-        <img src={playIconSrc} alt="Play" className={styles.playBtnIcon} />
-        <p className={styles.playBtnLabel}>play</p>
-      </motion.button>
+      {!noAttempts && (
+        <motion.button
+          className={styles.playBtn}
+          onClick={noAttempts ? undefined : onStart}
+          whileTap={{
+            scale: 0.9,
+            transition: { duration: 0.1, ease: "easeOut" },
+          }}
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, type: "spring" }}
+        >
+          <img src={playIconSrc} alt="Play" className={styles.playBtnIcon} />
+          <p className={styles.playBtnLabel}>play</p>
+        </motion.button>
+      )}
 
       <motion.div
         className={styles.howToPlayBtn}

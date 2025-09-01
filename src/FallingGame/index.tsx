@@ -24,6 +24,10 @@ const Index = () => {
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
   const [config, setConfig] = useState<GameConfig | null>(null);
+  const [tries, setTries] = useState<number>(() => {
+    const raw = localStorage.getItem("tryCount");
+    return raw ? parseInt(raw, 10) || 0 : 0;
+  });
 
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
@@ -89,7 +93,6 @@ const Index = () => {
       }
 
       if (!effectiveConfig) {
-        console.log("222");
         // Without remote config, keep showing the loader
         return;
       }
@@ -147,8 +150,13 @@ const Index = () => {
 
   useEffect(() => {
     if (gameOver) {
-      const encryptedScore = encryptScore(score, ENCRYPT_KEY);
-      sendPostMessage("GAME_OVER", encryptedScore);
+      // decrement tries on every game over
+      const current = parseInt(localStorage.getItem("tryCount") || "0", 10);
+      const next = Math.max(0, (Number.isFinite(current) ? current : 0) - 1);
+      localStorage.setItem("tryCount", String(next));
+      setTries(next);
+
+      sendPostMessage("GAME_OVER", encryptScore(score, ENCRYPT_KEY));
       gameRef.current?.stop();
       gameRef.current = null;
     }
@@ -165,9 +173,9 @@ const Index = () => {
   const handleCloseGame = useCallback(() => {
     setTimeout(() => {
       sendPostMessage("CLOSE_GAME");
-      gameRef.current?.stop();
-      setStarted(false);
-      setGameOver(false);
+      // gameRef.current?.stop();
+      // setStarted(false);
+      // setGameOver(false);
     }, 150);
   }, []);
 
@@ -234,11 +242,13 @@ const Index = () => {
         <StartGameScreen
           onStart={handleStartGame}
           onHowToPlay={() => sendPostMessage("HOW_TO_PLAY")}
+          noAttempts={tries <= 0}
         />
       ) : gameOver ? (
         <GameOverScreen
           onRestart={handleRestartGame}
           onCloseGame={handleCloseGame}
+          noAttempts={tries <= 0}
         />
       ) : (
         <GameScreen canvasRef={canvasRef} />
