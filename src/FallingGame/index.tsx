@@ -39,6 +39,18 @@ const Index = () => {
     return raw ? parseInt(raw, 10) || 0 : 0;
   });
 
+  // iOS can flicker when playing <audio> with display:none. Keep them offscreen and transparent instead.
+  const hiddenAudioStyle: React.CSSProperties = {
+    position: "absolute",
+    width: 0,
+    height: 0,
+    opacity: 0,
+    pointerEvents: "none",
+    overflow: "hidden",
+    left: -9999,
+    top: 0,
+  };
+
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
       setScore(score);
@@ -166,7 +178,8 @@ const Index = () => {
         const pool = catchAudioPoolRef.current;
         if (!pool || pool.length === 0) return;
         const idx = catchPoolIndexRef.current % pool.length;
-        catchPoolIndexRef.current = (catchPoolIndexRef.current + 1) % pool.length;
+        catchPoolIndexRef.current =
+          (catchPoolIndexRef.current + 1) % pool.length;
         const a = pool[idx];
         if (!a) return;
         try {
@@ -227,6 +240,27 @@ const Index = () => {
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
+      // Prime catch audio pool to warm up decoders on iOS before actual gameplay
+      try {
+        catchAudioPoolRef.current.forEach((el) => {
+          if (!el) return;
+          el.volume = 0;
+          el.currentTime = 0;
+          void el
+            .play()
+            ?.then(() => {
+              el.pause();
+              el.currentTime = 0;
+              el.volume = 1;
+            })
+            .catch(() => {
+              // ignore; some platforms block this, it's best-effort warmup
+            });
+        });
+      } catch {
+        // ignore warmup issues
+      }
+
       // Start theme if not muted (user gesture)
       if (!muted && themeAudioRef.current) {
         try {
@@ -309,7 +343,8 @@ const Index = () => {
         src={gameThemeSoundUrl}
         preload="auto"
         loop
-        style={{ display: "none" }}
+        playsInline
+        style={hiddenAudioStyle}
       />
       <audio
         ref={gameOverAudioRef}
@@ -317,7 +352,7 @@ const Index = () => {
         preload="auto"
         muted={muted}
         playsInline
-        style={{ display: "none" }}
+        style={hiddenAudioStyle}
       />
       {/* Small pool to allow short, non-overlapping catch sounds without creating many instances */}
       {Array.from({ length: 3 }).map((_, i) => (
@@ -331,7 +366,7 @@ const Index = () => {
           preload="auto"
           muted={muted}
           playsInline
-          style={{ display: "none" }}
+          style={hiddenAudioStyle}
         />
       ))}
       {config && (
