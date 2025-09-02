@@ -341,7 +341,7 @@ export class Game {
           this.gameOver();
           return true; // keep bomb to render momentarily
         }
-        // Score and visual feedback
+  // Score and visual feedback
         this.score += it.value;
         this.floatingTexts.push({
           x: it.x + it.width / 2,
@@ -350,13 +350,8 @@ export class Game {
           alpha: 1,
           lifetime: 1000,
         });
-        // Trigger catch item sound via host
-        // postMessage({ event: "CATCH_ITEM_SOUND" });
+  // no catch sound
 
-        // Notify host that a point was collected
-        sendPostMessage("CATCH_ITEM_SOUND");
-
-        // Start drop + fade animation for the caught item
         if (it.imageElement) {
           this.caughtAnims.push({
             x: it.x,
@@ -376,6 +371,8 @@ export class Game {
           0,
           this.score - (it.deduct ?? this.config.item.defaultDeduct)
         );
+        // Emit a drop sound only once per miss
+        sendPostMessage("DROP_ITEM_SOUND");
         return false;
       }
 
