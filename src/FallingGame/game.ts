@@ -4,6 +4,9 @@ export class Game {
   // Rendering
   ctx: CanvasRenderingContext2D | null;
   canvas: HTMLCanvasElement;
+  // Frame timing
+  private minFrameMs = 1000 / 120; // cap renders at 120 FPS on high-refresh displays
+  private frameAccumulator = 0;
 
   // Config & state
   config: GameConfig;
@@ -177,7 +180,12 @@ export class Game {
       const dt = t - this.lastTime;
       this.lastTime = t;
       this.update(dt);
-      this.draw();
+      // Cap rendering to at most 120 FPS (still updates every RAF)
+      this.frameAccumulator += dt;
+      if (this.frameAccumulator >= this.minFrameMs) {
+        this.draw();
+        this.frameAccumulator = 0;
+      }
       this.rafId = requestAnimationFrame(step);
     };
     this.rafId = requestAnimationFrame(step);
@@ -212,7 +220,9 @@ export class Game {
 
   // Layout ----------------------------------------------------
   setupCanvas() {
-    const dpr = window.devicePixelRatio || 1;
+  // Clamp DPR to help hit higher FPS on low/mid devices
+  const MAX_DPR = 2;
+  const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     const width = document.body.offsetWidth;
     const height = document.body.offsetHeight;
 
@@ -240,8 +250,10 @@ export class Game {
     if (this.isPaused || this.isGameOver) return;
 
     const dt = dtMs / 1000;
-    // Smooth basket
-    this.basket.x += (this.basket.targetX - this.basket.x) * 0.1;
+  // Smooth basket (frame-rate independent smoothing)
+  const k = 12; // responsiveness constant
+  const alpha = 1 - Math.exp(-k * dt);
+  this.basket.x += (this.basket.targetX - this.basket.x) * alpha;
 
     // Time & speed
     this.timer += dt;
