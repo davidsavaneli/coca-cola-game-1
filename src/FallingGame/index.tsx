@@ -16,12 +16,15 @@ import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 import type { GameConfig } from "./types";
 import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
 import gameThemeSoundUrl from "./assets/sounds/game_theme_sound.mp3";
+import catchSoundUrl from "./assets/sounds/catch_sound.mp3";
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
   const themeAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [muted, setMuted] = useState<boolean>(false);
+  const [muted, setMuted] = useState<boolean>(true);
+  const catchAudioPoolRef = useRef<HTMLAudioElement[]>([]);
+  const catchAudioIndexRef = useRef<number>(0);
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [gameOver, setGameOver] = useState(false);
@@ -145,6 +148,16 @@ const Index = () => {
       a.volume = 0.6;
       themeAudioRef.current = a;
     }
+    // Prepare catch sound pool once
+    if (catchAudioPoolRef.current.length === 0) {
+      const poolSize = 4;
+      for (let i = 0; i < poolSize; i++) {
+        const a = new Audio(catchSoundUrl);
+        a.preload = "auto";
+        a.volume = 0.6;
+        catchAudioPoolRef.current.push(a);
+      }
+    }
     return () => {
       if (themeAudioRef.current) {
         themeAudioRef.current.pause();
@@ -152,6 +165,29 @@ const Index = () => {
       }
     };
   }, []);
+
+  // Listen for in-game messages (e.g., CATCH_ITEM_SOUND)
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      const evt = e?.data?.event;
+      if (evt === "CATCH_ITEM_SOUND") {
+        if (muted) return;
+        const pool = catchAudioPoolRef.current;
+        if (!pool.length) return;
+        const i = catchAudioIndexRef.current;
+        catchAudioIndexRef.current = (i + 1) % pool.length;
+        const a = pool[i];
+        try {
+          a.currentTime = 0;
+          void a.play();
+        } catch {
+          // ignore play errors
+        }
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [muted]);
 
   useEffect(() => {
     if (!started || gameOver) return;
@@ -207,6 +243,28 @@ const Index = () => {
           void themeAudioRef.current.play();
         } catch {
           // ignore play errors
+        }
+      }
+      // Warm-up catch sound (unlock on mobile)
+      if (catchAudioPoolRef.current.length > 0) {
+        const a = catchAudioPoolRef.current[0];
+        const prevVol = a.volume;
+        a.volume = 0;
+        const p = a.play();
+        if (p && typeof (p as Promise<void>).then === "function") {
+          (p as Promise<void>)
+            .then(() => {
+              a.pause();
+              a.currentTime = 0;
+              a.volume = prevVol;
+            })
+            .catch(() => {
+              a.volume = prevVol;
+            });
+        } else {
+          a.pause();
+          a.currentTime = 0;
+          a.volume = prevVol;
         }
       }
       gameRef.current?.start();
