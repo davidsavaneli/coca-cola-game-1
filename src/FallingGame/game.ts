@@ -82,7 +82,10 @@ export class Game {
     }) => void
   ) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext("2d");
+    // Hint the browser for lower-latency canvas swaps in WebView environments
+    this.ctx = (canvas.getContext("2d", { desynchronized: true } as any) as
+      | CanvasRenderingContext2D
+      | null);
     this.config = config;
     this.onUpdateState = onUpdateState;
 
@@ -220,7 +223,14 @@ export class Game {
     this.canvas.height = height * dpr;
     this.canvas.style.width = width + "px";
     this.canvas.style.height = height + "px";
-    if (this.ctx) this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (this.ctx) {
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Prefer speed over quality to keep frames steady on mobile WebViews
+      this.ctx.imageSmoothingEnabled = true;
+      if ("imageSmoothingQuality" in this.ctx) {
+        (this.ctx as any).imageSmoothingQuality = "low";
+      }
+    }
 
     this.basket.x = (width - this.basket.width) / 2;
     this.basket.y = height - this.config.basket.initialYOffset;
