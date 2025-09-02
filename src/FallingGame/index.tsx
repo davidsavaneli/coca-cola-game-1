@@ -142,13 +142,13 @@ const Index = () => {
 
   // Prepare theme audio element once; set up single catch sound with queue
   useEffect(() => {
-    if (!themeAudioRef.current) {
-      const a = new Audio(gameThemeSoundUrl);
-      a.preload = "auto";
-      a.loop = true;
-      a.volume = 0.6;
-      themeAudioRef.current = a;
-    }
+    // if (!themeAudioRef.current) {
+    //   const a = new Audio(gameThemeSoundUrl);
+    //   a.preload = "auto";
+    //   a.loop = true;
+    //   a.volume = 0.6;
+    //   themeAudioRef.current = a;
+    // }
     // Prepare single catch audio instance
     if (!catchAudioRef.current) {
       const a = new Audio(catchSoundUrl);
