@@ -14,6 +14,7 @@ import logoSrc from "./assets/images/logo.svg";
 import playIconSrc from "./assets/images/play-btn-icon.svg";
 import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 import type { GameConfig } from "./types";
+import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
@@ -157,6 +158,14 @@ const Index = () => {
       setTries(next);
 
       sendPostMessage("GAME_OVER", encryptScore(score, ENCRYPT_KEY));
+      // here i want play gameover sound
+      try {
+        const gameOverSound = new Audio(gameOverSoundUrl);
+        void gameOverSound.play();
+      } catch {
+        // ignore play errors (e.g., autoplay policies)
+      }
+
       gameRef.current?.stop();
       gameRef.current = null;
     }

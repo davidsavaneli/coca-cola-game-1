@@ -1,14 +1,24 @@
 import styles from "../styles.module.css";
 import playIconSrc from "../assets/images/play-btn-icon.svg";
 import { motion } from "framer-motion";
+import soundOnIconSrc from "../assets/images/sound-on-icon.svg";
+import soundOffIconSrc from "../assets/images/sound-off-icon.svg";
 
 interface Props {
   onStart: () => void;
   onHowToPlay?: () => void;
   noAttempts?: boolean;
+  muted?: boolean;
+  onToggleMute?: () => void;
 }
 
-const StartGameScreen = ({ onStart, onHowToPlay, noAttempts }: Props) => (
+const StartGameScreen = ({
+  onStart,
+  onHowToPlay,
+  noAttempts,
+  muted = true,
+  onToggleMute,
+}: Props) => (
   <>
     <div className={styles.startGameScreen}>
       {!noAttempts && (
@@ -44,6 +54,12 @@ const StartGameScreen = ({ onStart, onHowToPlay, noAttempts }: Props) => (
           How to play?
         </motion.div>
       </motion.div>
+      <img
+        src={muted ? soundOffIconSrc : soundOnIconSrc}
+        alt={muted ? "Sounf off" : "Sound on"}
+        className={styles.muteUnmuteIcon}
+        onClick={onToggleMute}
+      />
     </div>
   </>
 );
