@@ -15,10 +15,13 @@ import playIconSrc from "./assets/images/play-btn-icon.svg";
 import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 import type { GameConfig } from "./types";
 import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
+import gameThemeSoundUrl from "./assets/sounds/game_theme_sound.mp3";
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
+  const themeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [muted, setMuted] = useState<boolean>(true);
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [gameOver, setGameOver] = useState(false);
@@ -133,6 +136,23 @@ const Index = () => {
     };
   }, []);
 
+  // Prepare theme audio element once
+  useEffect(() => {
+    if (!themeAudioRef.current) {
+      const a = new Audio(gameThemeSoundUrl);
+      a.preload = "auto";
+      a.loop = true;
+      a.volume = 0.6;
+      themeAudioRef.current = a;
+    }
+    return () => {
+      if (themeAudioRef.current) {
+        themeAudioRef.current.pause();
+        themeAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!started || gameOver) return;
     const canvas = canvasRef.current;
@@ -166,6 +186,13 @@ const Index = () => {
         // ignore play errors (e.g., autoplay policies)
       }
 
+      // Pause theme on game over
+      try {
+        themeAudioRef.current?.pause();
+      } catch {
+        // ignore pause errors
+      }
+
       gameRef.current?.stop();
       gameRef.current = null;
     }
@@ -173,11 +200,20 @@ const Index = () => {
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
+      // Start theme if not muted (user gesture)
+      if (!muted && themeAudioRef.current) {
+        themeAudioRef.current.loop = true;
+        try {
+          void themeAudioRef.current.play();
+        } catch {
+          // ignore play errors
+        }
+      }
       gameRef.current?.start();
       setGameOver(false);
       setStarted(true);
     }, 150);
-  }, []);
+  }, [muted]);
 
   const handleCloseGame = useCallback(() => {
     setTimeout(() => {
@@ -194,7 +230,41 @@ const Index = () => {
       gameRef.current?.start();
       setGameOver(false);
       setStarted(true);
+      // Resume theme if not muted
+      if (!muted && themeAudioRef.current) {
+        try {
+          void themeAudioRef.current.play();
+        } catch {
+          // ignore play errors
+        }
+      }
     }, 150);
+  }, [muted]);
+
+  const handleToggleMute = useCallback(() => {
+    setMuted((m) => {
+      const next = !m;
+      const a = themeAudioRef.current;
+      if (a) {
+        if (next) {
+          // becoming muted
+          try {
+            a.pause();
+            a.currentTime = 0;
+          } catch {
+            // ignore pause errors
+          }
+        } else {
+          // becoming unmuted
+          try {
+            void a.play();
+          } catch {
+            // ignore play errors
+          }
+        }
+      }
+      return next;
+    });
   }, []);
 
   // const handlePauseGame = useCallback(() => {
@@ -252,6 +322,8 @@ const Index = () => {
           onStart={handleStartGame}
           onHowToPlay={() => sendPostMessage("HOW_TO_PLAY")}
           noAttempts={tries <= 0}
+          muted={muted}
+          onToggleMute={handleToggleMute}
         />
       ) : gameOver ? (
         <GameOverScreen
