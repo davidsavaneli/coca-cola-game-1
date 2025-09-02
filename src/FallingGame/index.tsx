@@ -150,7 +150,7 @@ const Index = () => {
       themeAudioRef.current = a;
     }
     // Prepare single catch audio instance
-    if (!catchAudioRef.current) {
+    // if (!catchAudioRef.current) {
       const a = new Audio(catchSoundUrl);
       a.preload = "auto";
       a.volume = 1;
@@ -184,7 +184,7 @@ const Index = () => {
         a.pause();
         a.currentTime = 0;
       };
-    }
+    // }
     return () => {
       if (themeAudioRef.current) {
         themeAudioRef.current.pause();
