@@ -16,17 +16,14 @@ import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 import type { GameConfig } from "./types";
 import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
 import gameThemeSoundUrl from "./assets/sounds/game_theme_sound.mp3";
-import catchSoundUrl from "./assets/sounds/catch_sound.mp3";
+// catch item sound removed
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
   const themeAudioRef = useRef<HTMLAudioElement | null>(null);
   const gameOverAudioRef = useRef<HTMLAudioElement | null>(null);
-  // Catch sound pooling to prevent overlapping instances/flicker on mobile
-  const catchAudioPoolRef = useRef<HTMLAudioElement[]>([]);
-  const catchPoolIndexRef = useRef<number>(0);
-  const lastCatchPlayAtRef = useRef<number>(0);
+  // catch item sound removed
   const [muted, setMuted] = useState<boolean>(true);
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
@@ -164,35 +161,7 @@ const Index = () => {
     };
   }, []);
 
-  // Listen for catch sound trigger from the game engine
-  useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      const evt = e?.data?.event;
-      if (evt === "CATCH_ITEM_SOUND") {
-        if (muted) return;
-        // simple cooldown to avoid rapid-fire triggers from multiple collisions in the same frame
-        const now = performance.now();
-        if (now - lastCatchPlayAtRef.current < 90) return; // ~11 fps overlap cap
-        lastCatchPlayAtRef.current = now;
-
-        const pool = catchAudioPoolRef.current;
-        if (!pool || pool.length === 0) return;
-        const idx = catchPoolIndexRef.current % pool.length;
-        catchPoolIndexRef.current =
-          (catchPoolIndexRef.current + 1) % pool.length;
-        const a = pool[idx];
-        if (!a) return;
-        try {
-          a.currentTime = 0;
-          void a.play();
-        } catch {
-          // ignore play errors
-        }
-      }
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [muted]);
+  // catch item sound removed
 
   useEffect(() => {
     if (!started || gameOver) return;
@@ -240,35 +209,14 @@ const Index = () => {
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
-      // Prime catch audio pool to warm up decoders on iOS before actual gameplay
-      try {
-        catchAudioPoolRef.current.forEach((el) => {
-          if (!el) return;
-          el.volume = 0;
-          el.currentTime = 0;
-          void el
-            .play()
-            ?.then(() => {
-              el.pause();
-              el.currentTime = 0;
-              el.volume = 1;
-            })
-            .catch(() => {
-              // ignore; some platforms block this, it's best-effort warmup
-            });
-        });
-      } catch {
-        // ignore warmup issues
-      }
-
       // Start theme if not muted (user gesture)
-      // if (!muted && themeAudioRef.current) {
-      //   try {
-      //     void themeAudioRef.current.play();
-      //   } catch {
-      //     // ignore play errors
-      //   }
-      // }
+      if (!muted && themeAudioRef.current) {
+        try {
+          void themeAudioRef.current.play();
+        } catch {
+          // ignore play errors
+        }
+      }
       gameRef.current?.start();
       setGameOver(false);
       setStarted(true);
@@ -291,13 +239,13 @@ const Index = () => {
       setGameOver(false);
       setStarted(true);
       // Resume theme if not muted
-      // if (!muted && themeAudioRef.current) {
-      //   try {
-      //     void themeAudioRef.current.play();
-      //   } catch {
-      //     // ignore play errors
-      //   }
-      // }
+      if (!muted && themeAudioRef.current) {
+        try {
+          void themeAudioRef.current.play();
+        } catch {
+          // ignore play errors
+        }
+      }
     }, 150);
   }, [muted]);
 
@@ -305,24 +253,24 @@ const Index = () => {
     setMuted((m) => {
       const next = !m;
       const a = themeAudioRef.current;
-      // if (a) {
-      //   if (next) {
-      //     // becoming muted
-      //     try {
-      //       a.pause();
-      //       a.currentTime = 0;
-      //     } catch {
-      //       // ignore pause errors
-      //     }
-      //   } else {
-      //     // becoming unmuted
-      //     try {
-      //       void a.play();
-      //     } catch {
-      //       // ignore play errors
-      //     }
-      //   }
-      // }
+      if (a) {
+        if (next) {
+          // becoming muted
+          try {
+            a.pause();
+            a.currentTime = 0;
+          } catch {
+            // ignore pause errors
+          }
+        } else {
+          // becoming unmuted
+          try {
+            void a.play();
+          } catch {
+            // ignore play errors
+          }
+        }
+      }
       return next;
     });
   }, []);
@@ -354,21 +302,7 @@ const Index = () => {
         playsInline
         style={hiddenAudioStyle}
       />
-      {/* Small pool to allow short, non-overlapping catch sounds without creating many instances */}
-      {Array.from({ length: 3 }).map((_, i) => (
-        <audio
-          key={`catch-audio-${i}`}
-          ref={(el) => {
-            if (!el) return;
-            catchAudioPoolRef.current[i] = el;
-          }}
-          src={catchSoundUrl}
-          preload="auto"
-          muted={muted}
-          playsInline
-          style={hiddenAudioStyle}
-        />
-      ))}
+  {/* catch item sound removed */}
       {config && (
         <img src={config.backgroundImage} alt="" className={styles.bgImage} />
       )}
