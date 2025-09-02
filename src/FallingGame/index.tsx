@@ -262,13 +262,13 @@ const Index = () => {
       }
 
       // Start theme if not muted (user gesture)
-      if (!muted && themeAudioRef.current) {
-        try {
-          void themeAudioRef.current.play();
-        } catch {
-          // ignore play errors
-        }
-      }
+      // if (!muted && themeAudioRef.current) {
+      //   try {
+      //     void themeAudioRef.current.play();
+      //   } catch {
+      //     // ignore play errors
+      //   }
+      // }
       gameRef.current?.start();
       setGameOver(false);
       setStarted(true);
@@ -291,13 +291,13 @@ const Index = () => {
       setGameOver(false);
       setStarted(true);
       // Resume theme if not muted
-      if (!muted && themeAudioRef.current) {
-        try {
-          void themeAudioRef.current.play();
-        } catch {
-          // ignore play errors
-        }
-      }
+      // if (!muted && themeAudioRef.current) {
+      //   try {
+      //     void themeAudioRef.current.play();
+      //   } catch {
+      //     // ignore play errors
+      //   }
+      // }
     }, 150);
   }, [muted]);
 
@@ -305,24 +305,24 @@ const Index = () => {
     setMuted((m) => {
       const next = !m;
       const a = themeAudioRef.current;
-      if (a) {
-        if (next) {
-          // becoming muted
-          try {
-            a.pause();
-            a.currentTime = 0;
-          } catch {
-            // ignore pause errors
-          }
-        } else {
-          // becoming unmuted
-          try {
-            void a.play();
-          } catch {
-            // ignore play errors
-          }
-        }
-      }
+      // if (a) {
+      //   if (next) {
+      //     // becoming muted
+      //     try {
+      //       a.pause();
+      //       a.currentTime = 0;
+      //     } catch {
+      //       // ignore pause errors
+      //     }
+      //   } else {
+      //     // becoming unmuted
+      //     try {
+      //       void a.play();
+      //     } catch {
+      //       // ignore play errors
+      //     }
+      //   }
+      // }
       return next;
     });
   }, []);
