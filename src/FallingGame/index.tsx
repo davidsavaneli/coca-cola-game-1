@@ -23,7 +23,10 @@ const Index = () => {
   const gameRef = useRef<Game | null>(null);
   const themeAudioRef = useRef<HTMLAudioElement | null>(null);
   const gameOverAudioRef = useRef<HTMLAudioElement | null>(null);
-  const catchAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Catch sound pooling to prevent overlapping instances/flicker on mobile
+  const catchAudioPoolRef = useRef<HTMLAudioElement[]>([]);
+  const catchPoolIndexRef = useRef<number>(0);
+  const lastCatchPlayAtRef = useRef<number>(0);
   const [muted, setMuted] = useState<boolean>(true);
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
@@ -155,7 +158,16 @@ const Index = () => {
       const evt = e?.data?.event;
       if (evt === "CATCH_ITEM_SOUND") {
         if (muted) return;
-        const a = catchAudioRef.current;
+        // simple cooldown to avoid rapid-fire triggers from multiple collisions in the same frame
+        const now = performance.now();
+        if (now - lastCatchPlayAtRef.current < 90) return; // ~11 fps overlap cap
+        lastCatchPlayAtRef.current = now;
+
+        const pool = catchAudioPoolRef.current;
+        if (!pool || pool.length === 0) return;
+        const idx = catchPoolIndexRef.current % pool.length;
+        catchPoolIndexRef.current = (catchPoolIndexRef.current + 1) % pool.length;
+        const a = pool[idx];
         if (!a) return;
         try {
           a.currentTime = 0;
@@ -303,14 +315,25 @@ const Index = () => {
         ref={gameOverAudioRef}
         src={gameOverSoundUrl}
         preload="auto"
+        muted={muted}
+        playsInline
         style={{ display: "none" }}
       />
-      <audio
-        ref={catchAudioRef}
-        src={catchSoundUrl}
-        preload="auto"
-        style={{ display: "none" }}
-      />
+      {/* Small pool to allow short, non-overlapping catch sounds without creating many instances */}
+      {Array.from({ length: 3 }).map((_, i) => (
+        <audio
+          key={`catch-audio-${i}`}
+          ref={(el) => {
+            if (!el) return;
+            catchAudioPoolRef.current[i] = el;
+          }}
+          src={catchSoundUrl}
+          preload="auto"
+          muted={muted}
+          playsInline
+          style={{ display: "none" }}
+        />
+      ))}
       {config && (
         <img src={config.backgroundImage} alt="" className={styles.bgImage} />
       )}
