@@ -83,9 +83,9 @@ export class Game {
   ) {
     this.canvas = canvas;
     // Hint the browser for lower-latency canvas swaps in WebView environments
-    this.ctx = (canvas.getContext("2d", { desynchronized: true } as any) as
-      | CanvasRenderingContext2D
-      | null);
+    this.ctx = canvas.getContext("2d", {
+      desynchronized: true,
+    } as any) as CanvasRenderingContext2D | null;
     this.config = config;
     this.onUpdateState = onUpdateState;
 
@@ -350,6 +350,8 @@ export class Game {
           alpha: 1,
           lifetime: 1000,
         });
+        // Trigger catch item sound via host
+        // postMessage({ event: "CATCH_ITEM_SOUND" });
 
         // Notify host that a point was collected
         sendPostMessage("CATCH_ITEM_SOUND");

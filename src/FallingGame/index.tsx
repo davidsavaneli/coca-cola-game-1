@@ -16,12 +16,14 @@ import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 import type { GameConfig } from "./types";
 import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
 import gameThemeSoundUrl from "./assets/sounds/game_theme_sound.mp3";
+import catchSoundUrl from "./assets/sounds/catch_sound.mp3";
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
   const themeAudioRef = useRef<HTMLAudioElement | null>(null);
   const gameOverAudioRef = useRef<HTMLAudioElement | null>(null);
+  const catchAudioRef = useRef<HTMLAudioElement | null>(null);
   const [muted, setMuted] = useState<boolean>(true);
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
@@ -147,6 +149,26 @@ const Index = () => {
     };
   }, []);
 
+  // Listen for catch sound trigger from the game engine
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      const evt = e?.data?.event;
+      if (evt === "CATCH_ITEM_SOUND") {
+        if (muted) return;
+        const a = catchAudioRef.current;
+        if (!a) return;
+        try {
+          a.currentTime = 0;
+          void a.play();
+        } catch {
+          // ignore play errors
+        }
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [muted]);
+
   useEffect(() => {
     if (!started || gameOver) return;
     const canvas = canvasRef.current;
@@ -193,7 +215,7 @@ const Index = () => {
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
-  // Start theme if not muted (user gesture)
+      // Start theme if not muted (user gesture)
       if (!muted && themeAudioRef.current) {
         try {
           void themeAudioRef.current.play();
@@ -222,7 +244,7 @@ const Index = () => {
       gameRef.current?.start();
       setGameOver(false);
       setStarted(true);
-  // Resume theme if not muted
+      // Resume theme if not muted
       if (!muted && themeAudioRef.current) {
         try {
           void themeAudioRef.current.play();
@@ -280,6 +302,12 @@ const Index = () => {
       <audio
         ref={gameOverAudioRef}
         src={gameOverSoundUrl}
+        preload="auto"
+        style={{ display: "none" }}
+      />
+      <audio
+        ref={catchAudioRef}
+        src={catchSoundUrl}
         preload="auto"
         style={{ display: "none" }}
       />
