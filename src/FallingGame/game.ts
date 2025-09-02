@@ -352,7 +352,7 @@ export class Game {
         });
 
         // Notify host that a point was collected
-        sendPostMessage("POINT_COLLECTED");
+        // sendPostMessage("POINT_COLLECTED");
 
         // Start drop + fade animation for the caught item
         if (it.imageElement) {
