@@ -350,7 +350,8 @@ export class Game {
           alpha: 1,
           lifetime: 1000,
         });
-        // no catch sound
+  // emit catch sound event (handled in React via Web Audio)
+  sendPostMessage("CATCH_ITEM_SOUND");
 
         if (it.imageElement) {
           this.caughtAnims.push({

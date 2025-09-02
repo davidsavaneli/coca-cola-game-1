@@ -16,7 +16,8 @@ import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 import type { GameConfig } from "./types";
 import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
 import gameThemeSoundUrl from "./assets/sounds/game_theme_sound.mp3";
-// drop sound removed
+import { audioManager } from "./audio/AudioManager";
+import catchSoundUrl from "./assets/sounds/catch_sound.mp3";
 // catch item sound removed
 
 const Index = () => {
@@ -48,7 +49,8 @@ const Index = () => {
     left: -9999,
     top: 0,
   };
-  // drop sound removed
+  // WebAudio catch sound via AudioManager
+  const lastCatchPlayAtRef = useRef<number>(0);
 
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
@@ -144,6 +146,17 @@ const Index = () => {
         // ignore font load errors
       }
 
+      // Preload catch sound (Web Audio)
+      try {
+        if (audioManager.isSupported()) {
+          await audioManager.load([
+            { name: "catch", url: catchSoundUrl },
+          ]);
+        }
+      } catch {
+        // ignore audio preload errors
+      }
+
       if (!cancelled) setAssetsLoaded(true);
     };
 
@@ -152,6 +165,21 @@ const Index = () => {
       cancelled = true;
     };
   }, []);
+
+  // Listen for catch item event and play via Web Audio (no <audio> tag churn)
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e?.data?.event === "CATCH_ITEM_SOUND") {
+        if (muted || !audioManager.isSupported()) return;
+        const now = performance.now();
+        if (now - lastCatchPlayAtRef.current < 80) return; // light throttle
+        lastCatchPlayAtRef.current = now;
+        audioManager.play("catch", { allowOverlap: false });
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [muted]);
 
   // drop sound removed
 
@@ -213,6 +241,8 @@ const Index = () => {
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
+  // Unlock/resume Web Audio on user gesture for iOS
+  void audioManager.resume();
       // Start theme if not muted (user gesture)
       if (!muted && themeAudioRef.current) {
         try {
