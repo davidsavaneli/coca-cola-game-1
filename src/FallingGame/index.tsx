@@ -16,16 +16,13 @@ import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 import type { GameConfig } from "./types";
 import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
 import gameThemeSoundUrl from "./assets/sounds/game_theme_sound.mp3";
-import catchSoundUrl from "./assets/sounds/catch_sound.mp3";
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
   const themeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const gameOverAudioRef = useRef<HTMLAudioElement | null>(null);
   const [muted, setMuted] = useState<boolean>(true);
-  const catchAudioRef = useRef<HTMLAudioElement | null>(null);
-  const catchQueueRef = useRef<number>(0);
-  const catchPlayingRef = useRef<boolean>(false);
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [gameOver, setGameOver] = useState(false);
@@ -140,87 +137,15 @@ const Index = () => {
     };
   }, []);
 
-  // Prepare theme audio element once; set up single catch sound with queue
   useEffect(() => {
-    // if (!themeAudioRef.current) {
-    //   const a = new Audio(gameThemeSoundUrl);
-    //   a.preload = "auto";
-    //   a.loop = true;
-    //   a.volume = 0.1;
-    //   themeAudioRef.current = a;
-    // }
-    // Prepare single catch audio instance
-    // if (!catchAudioRef.current) {
-      const a = new Audio(catchSoundUrl);
-      a.preload = "auto";
-      a.volume = 1;
-      // When a catch sound finishes, drain the queue
-      const onEnded = () => {
-        if (muted) {
-          catchPlayingRef.current = false;
-          a.currentTime = 0;
-          return;
-        }
-        if (catchQueueRef.current > 0) {
-          catchQueueRef.current -= 1;
-          try {
-            a.currentTime = 0;
-            void a.play();
-            catchPlayingRef.current = true;
-          } catch {
-            // ignore play errors
-            catchPlayingRef.current = false;
-          }
-        } else {
-          catchPlayingRef.current = false;
-          a.currentTime = 0;
-        }
-      };
-      a.addEventListener("ended", onEnded);
-      // Store element and cleanup listener on unmount
-      catchAudioRef.current = a;
-      return () => {
-        a.removeEventListener("ended", onEnded);
-        a.pause();
-        a.currentTime = 0;
-      };
-    // }
+    const el = themeAudioRef.current;
     return () => {
-      if (themeAudioRef.current) {
-        themeAudioRef.current.pause();
-        themeAudioRef.current.currentTime = 0;
+      if (el) {
+        el.pause();
+        el.currentTime = 0;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Listen for in-game messages (e.g., CATCH_ITEM_SOUND)
-  useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      const evt = e?.data?.event;
-      if (evt === "CATCH_ITEM_SOUND") {
-        if (muted) return;
-        const a = catchAudioRef.current;
-        if (!a) return;
-        // If already playing, queue another playback (cap queue length)
-        if (catchPlayingRef.current) {
-          catchQueueRef.current = Math.min(catchQueueRef.current + 1, 6);
-          return;
-        }
-        // Start playing immediately
-        try {
-          a.currentTime = 0;
-          void a.play();
-          catchPlayingRef.current = true;
-        } catch {
-          // ignore play errors
-          catchPlayingRef.current = false;
-        }
-      }
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [muted]);
 
   useEffect(() => {
     if (!started || gameOver) return;
@@ -249,8 +174,7 @@ const Index = () => {
       sendPostMessage("GAME_OVER", encryptScore(score, ENCRYPT_KEY));
       // here i want play gameover sound
       try {
-        const gameOverSound = new Audio(gameOverSoundUrl);
-        void gameOverSound.play();
+        void gameOverAudioRef.current?.play();
       } catch {
         // ignore play errors (e.g., autoplay policies)
       }
@@ -269,35 +193,12 @@ const Index = () => {
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
-      // Start theme if not muted (user gesture)
+  // Start theme if not muted (user gesture)
       if (!muted && themeAudioRef.current) {
-        themeAudioRef.current.loop = true;
         try {
           void themeAudioRef.current.play();
         } catch {
           // ignore play errors
-        }
-      }
-      // Warm-up catch sound (unlock on mobile)
-      if (catchAudioRef.current) {
-        const a = catchAudioRef.current;
-        const prevVol = a.volume;
-        a.volume = 0;
-        const p = a.play();
-        if (p && typeof (p as Promise<void>).then === "function") {
-          (p as Promise<void>)
-            .then(() => {
-              a.pause();
-              a.currentTime = 0;
-              a.volume = prevVol;
-            })
-            .catch(() => {
-              a.volume = prevVol;
-            });
-        } else {
-          a.pause();
-          a.currentTime = 0;
-          a.volume = prevVol;
         }
       }
       gameRef.current?.start();
@@ -321,7 +222,7 @@ const Index = () => {
       gameRef.current?.start();
       setGameOver(false);
       setStarted(true);
-      // Resume theme if not muted
+  // Resume theme if not muted
       if (!muted && themeAudioRef.current) {
         try {
           void themeAudioRef.current.play();
@@ -354,20 +255,6 @@ const Index = () => {
           }
         }
       }
-      // Also handle catch sound on mute toggle
-      const ca = catchAudioRef.current;
-      if (ca) {
-        if (next) {
-          try {
-            ca.pause();
-          } catch {
-            // ignore pause errors
-          }
-          catchPlayingRef.current = false;
-          catchQueueRef.current = 0;
-          ca.currentTime = 0;
-        }
-      }
       return next;
     });
   }, []);
@@ -382,6 +269,20 @@ const Index = () => {
 
   return (
     <div className={styles.scene}>
+      {/* Hidden audio elements controlled via refs */}
+      <audio
+        ref={themeAudioRef}
+        src={gameThemeSoundUrl}
+        preload="auto"
+        loop
+        style={{ display: "none" }}
+      />
+      <audio
+        ref={gameOverAudioRef}
+        src={gameOverSoundUrl}
+        preload="auto"
+        style={{ display: "none" }}
+      />
       {config && (
         <img src={config.backgroundImage} alt="" className={styles.bgImage} />
       )}
