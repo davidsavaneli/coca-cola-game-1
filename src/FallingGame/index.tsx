@@ -16,7 +16,7 @@ import playAgainIconSrc from "./assets/images/play-again-icon.svg";
 import type { GameConfig } from "./types";
 import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
 import gameThemeSoundUrl from "./assets/sounds/game_theme_sound.mp3";
-import dropSoundUrl from "./assets/sounds/catch_sound.mp3"; // reuse asset for drop
+// drop sound removed
 // catch item sound removed
 
 const Index = () => {
@@ -48,9 +48,7 @@ const Index = () => {
     left: -9999,
     top: 0,
   };
-  // Single-instance drop sound (iOS-friendly)
-  const dropAudioRef = useRef<HTMLAudioElement | null>(null);
-  const lastDropPlayAtRef = useRef<number>(0);
+  // drop sound removed
 
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
@@ -155,31 +153,7 @@ const Index = () => {
     };
   }, []);
 
-  // Listen for drop sound trigger from the game engine (single instance, no overlap)
-  useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      const evt = e?.data?.event;
-      if (evt === "DROP_ITEM_SOUND") {
-        if (muted) return;
-        const now = performance.now();
-        if (now - lastDropPlayAtRef.current < 120) return; // throttle
-        lastDropPlayAtRef.current = now;
-
-        const a = dropAudioRef.current;
-        if (!a) return;
-        // If currently playing, don't restart (avoid iOS glitch)
-        if (!a.paused) return;
-        try {
-          a.currentTime = 0;
-          void a.play();
-        } catch {
-          // ignore play errors
-        }
-      }
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [muted]);
+  // drop sound removed
 
   useEffect(() => {
     const el = themeAudioRef.current;
@@ -239,25 +213,6 @@ const Index = () => {
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
-      // Warm up drop audio on iOS within user gesture
-      try {
-        const a = dropAudioRef.current;
-        if (a) {
-          const prevMuted = a.muted;
-          a.muted = true;
-          a.currentTime = 0;
-          void a.play()?.then(() => {
-            a.pause();
-            a.currentTime = 0;
-            a.muted = prevMuted;
-          }).catch(() => {
-            // best-effort warmup
-          });
-        }
-      } catch {
-        // ignore warmup errors
-      }
-
       // Start theme if not muted (user gesture)
       if (!muted && themeAudioRef.current) {
         try {
@@ -350,15 +305,7 @@ const Index = () => {
         playsInline
         style={hiddenAudioStyle}
       />
-      {/* Single drop sound element */}
-      <audio
-        ref={dropAudioRef}
-        src={dropSoundUrl}
-        preload="auto"
-        muted={muted}
-        playsInline
-        style={hiddenAudioStyle}
-      />
+  {/* drop sound removed */}
       {config && (
         <img src={config.backgroundImage} alt="" className={styles.bgImage} />
       )}

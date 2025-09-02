@@ -341,7 +341,7 @@ export class Game {
           this.gameOver();
           return true; // keep bomb to render momentarily
         }
-  // Score and visual feedback
+        // Score and visual feedback
         this.score += it.value;
         this.floatingTexts.push({
           x: it.x + it.width / 2,
@@ -350,7 +350,7 @@ export class Game {
           alpha: 1,
           lifetime: 1000,
         });
-  // no catch sound
+        // no catch sound
 
         if (it.imageElement) {
           this.caughtAnims.push({
