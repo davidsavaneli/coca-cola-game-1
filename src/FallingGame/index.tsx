@@ -23,8 +23,9 @@ const Index = () => {
   const gameRef = useRef<Game | null>(null);
   const themeAudioRef = useRef<HTMLAudioElement | null>(null);
   const [muted, setMuted] = useState<boolean>(true);
-  const catchAudioPoolRef = useRef<HTMLAudioElement[]>([]);
-  const catchAudioIndexRef = useRef<number>(0);
+  const catchAudioRef = useRef<HTMLAudioElement | null>(null);
+  const catchQueueRef = useRef<number>(0);
+  const catchPlayingRef = useRef<boolean>(false);
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [gameOver, setGameOver] = useState(false);
@@ -139,7 +140,7 @@ const Index = () => {
     };
   }, []);
 
-  // Prepare theme audio element once
+  // Prepare theme audio element once; set up single catch sound with queue
   useEffect(() => {
     if (!themeAudioRef.current) {
       const a = new Audio(gameThemeSoundUrl);
@@ -148,15 +149,41 @@ const Index = () => {
       a.volume = 0.6;
       themeAudioRef.current = a;
     }
-    // Prepare catch sound pool once
-    if (catchAudioPoolRef.current.length === 0) {
-      const poolSize = 4;
-      for (let i = 0; i < poolSize; i++) {
-        const a = new Audio(catchSoundUrl);
-        a.preload = "auto";
-        a.volume = 0.6;
-        catchAudioPoolRef.current.push(a);
-      }
+    // Prepare single catch audio instance
+    if (!catchAudioRef.current) {
+      const a = new Audio(catchSoundUrl);
+      a.preload = "auto";
+      a.volume = 0.6;
+      // When a catch sound finishes, drain the queue
+      const onEnded = () => {
+        if (muted) {
+          catchPlayingRef.current = false;
+          a.currentTime = 0;
+          return;
+        }
+        if (catchQueueRef.current > 0) {
+          catchQueueRef.current -= 1;
+          try {
+            a.currentTime = 0;
+            void a.play();
+            catchPlayingRef.current = true;
+          } catch {
+            // ignore play errors
+            catchPlayingRef.current = false;
+          }
+        } else {
+          catchPlayingRef.current = false;
+          a.currentTime = 0;
+        }
+      };
+      a.addEventListener("ended", onEnded);
+      // Store element and cleanup listener on unmount
+      catchAudioRef.current = a;
+      return () => {
+        a.removeEventListener("ended", onEnded);
+        a.pause();
+        a.currentTime = 0;
+      };
     }
     return () => {
       if (themeAudioRef.current) {
@@ -164,6 +191,7 @@ const Index = () => {
         themeAudioRef.current.currentTime = 0;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Listen for in-game messages (e.g., CATCH_ITEM_SOUND)
@@ -172,16 +200,21 @@ const Index = () => {
       const evt = e?.data?.event;
       if (evt === "CATCH_ITEM_SOUND") {
         if (muted) return;
-        const pool = catchAudioPoolRef.current;
-        if (!pool.length) return;
-        const i = catchAudioIndexRef.current;
-        catchAudioIndexRef.current = (i + 1) % pool.length;
-        const a = pool[i];
+        const a = catchAudioRef.current;
+        if (!a) return;
+        // If already playing, queue another playback (cap queue length)
+        if (catchPlayingRef.current) {
+          catchQueueRef.current = Math.min(catchQueueRef.current + 1, 6);
+          return;
+        }
+        // Start playing immediately
         try {
           a.currentTime = 0;
           void a.play();
+          catchPlayingRef.current = true;
         } catch {
           // ignore play errors
+          catchPlayingRef.current = false;
         }
       }
     };
@@ -246,8 +279,8 @@ const Index = () => {
         }
       }
       // Warm-up catch sound (unlock on mobile)
-      if (catchAudioPoolRef.current.length > 0) {
-        const a = catchAudioPoolRef.current[0];
+      if (catchAudioRef.current) {
+        const a = catchAudioRef.current;
         const prevVol = a.volume;
         a.volume = 0;
         const p = a.play();
@@ -319,6 +352,20 @@ const Index = () => {
           } catch {
             // ignore play errors
           }
+        }
+      }
+      // Also handle catch sound on mute toggle
+      const ca = catchAudioRef.current;
+      if (ca) {
+        if (next) {
+          try {
+            ca.pause();
+          } catch {
+            // ignore pause errors
+          }
+          catchPlayingRef.current = false;
+          catchQueueRef.current = 0;
+          ca.currentTime = 0;
         }
       }
       return next;
