@@ -21,7 +21,7 @@ const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
   const themeAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [muted, setMuted] = useState<boolean>(true);
+  const [muted, setMuted] = useState<boolean>(false);
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [gameOver, setGameOver] = useState(false);
