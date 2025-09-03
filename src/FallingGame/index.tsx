@@ -11,6 +11,7 @@ import {
   useTries,
   useCatchSound,
   useGlobalGameControls,
+  useToggleMute,
 } from "./hooks/index.ts";
 import { sendPostMessage, encryptScore } from "./helpers.ts";
 import { audioManager } from "./audio/AudioManager";
@@ -110,19 +111,6 @@ const Index = () => {
     }, 150);
   }, [muted]);
 
-  const handleToggleMute = useCallback(() => {
-    setMuted((m) => {
-      const next = !m;
-      audioManager.setMuted(next);
-      if (next) {
-        audioManager.stopLoop();
-      } else {
-        audioManager.startLoop("theme");
-      }
-      return next;
-    });
-  }, []);
-
   const handlePauseGame = useCallback(() => {
     gameRef.current?.pause();
     audioManager.stopLoop();
@@ -136,6 +124,8 @@ const Index = () => {
   }, [muted]);
 
   useGlobalGameControls(handlePauseGame, handleResumeGame);
+
+  const handleToggleMute = useToggleMute(setMuted);
 
   return (
     <div className={styles.scene}>
