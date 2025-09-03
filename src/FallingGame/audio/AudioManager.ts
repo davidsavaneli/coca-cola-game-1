@@ -5,20 +5,27 @@ export type AudioAsset = {
 
 export class AudioManager {
   private audioContext: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
   private buffers = new Map<string, AudioBuffer>();
+  private loopSource: AudioBufferSourceNode | null = null;
 
   constructor() {
     const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
     if (Ctx) {
-      this.audioContext = new Ctx();
+      const ctx: AudioContext = new Ctx();
+      this.audioContext = ctx;
+      this.masterGain = ctx.createGain();
+      this.masterGain.gain.value = 1;
+      this.masterGain.connect(ctx.destination);
     } else {
       // Web Audio not supported
       this.audioContext = null;
+      this.masterGain = null;
     }
   }
 
   isSupported() {
-    return this.audioContext != null;
+    return this.audioContext != null && this.masterGain != null;
   }
 
   async resume(): Promise<void> {
@@ -30,6 +37,11 @@ export class AudioManager {
         // ignore
       }
     }
+  }
+
+  setMuted(muted: boolean) {
+    if (!this.masterGain) return;
+    this.masterGain.gain.value = muted ? 0 : 1;
   }
 
   async load(assets: AudioAsset[]): Promise<void> {
@@ -50,21 +62,46 @@ export class AudioManager {
     );
   }
 
-  play(name: string, { allowOverlap = true }: { allowOverlap?: boolean } = {}): void {
-    if (!this.audioContext) return;
+  play(name: string): void {
+    if (!this.audioContext || !this.masterGain) return;
     const buf = this.buffers.get(name);
     if (!buf) return;
     try {
       const src = this.audioContext.createBufferSource();
       src.buffer = buf;
-      src.connect(this.audioContext.destination);
+      src.connect(this.masterGain);
       src.start(0);
-      if (!allowOverlap) {
-        // No tracking required for single-fire; caller should throttle externally if needed
-      }
     } catch {
       // ignore play errors
     }
+  }
+
+  startLoop(name: string): void {
+    if (!this.audioContext || !this.masterGain) return;
+    if (this.loopSource) return; // already playing
+    const buf = this.buffers.get(name);
+    if (!buf) return;
+    try {
+      const src = this.audioContext.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      src.connect(this.masterGain);
+      src.start(0);
+      this.loopSource = src;
+    } catch {
+      // ignore
+    }
+  }
+
+  stopLoop(): void {
+    if (!this.loopSource) return;
+    try {
+      this.loopSource.stop(0);
+    } catch {
+      // ignore
+    }
+    this.loopSource.disconnect();
+    this.loopSource = null;
   }
 }
 

@@ -23,8 +23,7 @@ import catchSoundUrl from "./assets/sounds/catch_sound.mp3";
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
-  const themeAudioRef = useRef<HTMLAudioElement | null>(null);
-  const gameOverAudioRef = useRef<HTMLAudioElement | null>(null);
+  // <audio> tags removed; use Web Audio via AudioManager
   // catch item sound removed
   const [muted, setMuted] = useState<boolean>(true);
 
@@ -38,17 +37,7 @@ const Index = () => {
     return raw ? parseInt(raw, 10) || 0 : 0;
   });
 
-  // iOS can flicker when playing <audio> with display:none. Keep them offscreen and transparent instead.
-  const hiddenAudioStyle: React.CSSProperties = {
-    position: "absolute",
-    width: 0,
-    height: 0,
-    opacity: 0,
-    pointerEvents: "none",
-    overflow: "hidden",
-    left: -9999,
-    top: 0,
-  };
+  // hiddenAudioStyle unused anymore (no <audio>)
   // WebAudio catch sound via AudioManager
   const lastCatchPlayAtRef = useRef<number>(0);
 
@@ -146,11 +135,13 @@ const Index = () => {
         // ignore font load errors
       }
 
-      // Preload catch sound (Web Audio)
+      // Preload Web Audio assets (theme, gameover, catch)
       try {
         if (audioManager.isSupported()) {
           await audioManager.load([
             { name: "catch", url: catchSoundUrl },
+            { name: "theme", url: gameThemeSoundUrl },
+            { name: "gameover", url: gameOverSoundUrl },
           ]);
         }
       } catch {
@@ -174,7 +165,7 @@ const Index = () => {
         const now = performance.now();
         if (now - lastCatchPlayAtRef.current < 80) return; // light throttle
         lastCatchPlayAtRef.current = now;
-        audioManager.play("catch", { allowOverlap: false });
+        audioManager.play("catch");
       }
     };
     window.addEventListener("message", onMessage);
@@ -183,15 +174,7 @@ const Index = () => {
 
   // drop sound removed
 
-  useEffect(() => {
-    const el = themeAudioRef.current;
-    return () => {
-      if (el) {
-        el.pause();
-        el.currentTime = 0;
-      }
-    };
-  }, []);
+  // No <audio> to cleanup
 
   // catch item sound removed
 
@@ -220,19 +203,9 @@ const Index = () => {
       setTries(next);
 
       sendPostMessage("GAME_OVER", encryptScore(score, ENCRYPT_KEY));
-      // here i want play gameover sound
-      try {
-        void gameOverAudioRef.current?.play();
-      } catch {
-        // ignore play errors (e.g., autoplay policies)
-      }
-
-      // Pause theme on game over
-      try {
-        themeAudioRef.current?.pause();
-      } catch {
-        // ignore pause errors
-      }
+      // Stop theme loop and play gameover via Web Audio
+      audioManager.stopLoop();
+      audioManager.play("gameover");
 
       gameRef.current?.stop();
       gameRef.current = null;
@@ -241,15 +214,11 @@ const Index = () => {
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
-  // Unlock/resume Web Audio on user gesture for iOS
-  void audioManager.resume();
-      // Start theme if not muted (user gesture)
-      if (!muted && themeAudioRef.current) {
-        try {
-          void themeAudioRef.current.play();
-        } catch {
-          // ignore play errors
-        }
+      // Unlock/resume Web Audio on user gesture for iOS
+      void audioManager.resume();
+      // Start theme loop if not muted (user gesture)
+      if (!muted) {
+        audioManager.startLoop("theme");
       }
       gameRef.current?.start();
       setGameOver(false);
@@ -273,12 +242,8 @@ const Index = () => {
       setGameOver(false);
       setStarted(true);
       // Resume theme if not muted
-      if (!muted && themeAudioRef.current) {
-        try {
-          void themeAudioRef.current.play();
-        } catch {
-          // ignore play errors
-        }
+      if (!muted) {
+        audioManager.startLoop("theme");
       }
     }, 150);
   }, [muted]);
@@ -286,24 +251,11 @@ const Index = () => {
   const handleToggleMute = useCallback(() => {
     setMuted((m) => {
       const next = !m;
-      const a = themeAudioRef.current;
-      if (a) {
-        if (next) {
-          // becoming muted
-          try {
-            a.pause();
-            a.currentTime = 0;
-          } catch {
-            // ignore pause errors
-          }
-        } else {
-          // becoming unmuted
-          try {
-            void a.play();
-          } catch {
-            // ignore play errors
-          }
-        }
+      audioManager.setMuted(next);
+      if (next) {
+        audioManager.stopLoop();
+      } else {
+        audioManager.startLoop("theme");
       }
       return next;
     });
@@ -319,23 +271,7 @@ const Index = () => {
 
   return (
     <div className={styles.scene}>
-      <audio
-        ref={themeAudioRef}
-        src={gameThemeSoundUrl}
-        preload="auto"
-        loop
-        playsInline
-        style={hiddenAudioStyle}
-      />
-      <audio
-        ref={gameOverAudioRef}
-        src={gameOverSoundUrl}
-        preload="auto"
-        muted={muted}
-        playsInline
-        style={hiddenAudioStyle}
-      />
-  {/* drop sound removed */}
+      {/* drop sound removed */}
       {config && (
         <img src={config.backgroundImage} alt="" className={styles.bgImage} />
       )}
