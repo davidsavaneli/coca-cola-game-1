@@ -90,7 +90,6 @@ p {
 
 .scoreBox {
   position: absolute;
-  top: 113px;
   top: 11.8%;
   left: 0;
   right: 0;
@@ -110,13 +109,18 @@ p {
 }
 
 .scoreLabel {
+  position: absolute;
+  top: 20.8%;
+  left: 0;
+  right: 0;
+  margin: auto;
   font-size: 16px;
   color: #fff;
   text-transform: uppercase;
   font-family: "Nunito", sans-serif;
   font-weight: 900;
   text-align: center;
-  margin-top: -4px;
+  z-index: 4;
 }
 
 /* Start Screen */

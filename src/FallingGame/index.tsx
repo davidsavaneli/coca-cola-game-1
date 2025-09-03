@@ -162,7 +162,14 @@ const Index = () => {
             transition={{ duration: 1.2, delay: 0.6, ease: "easeOut" }}
           >
             <div className={styles.score}>{score}</div>
-            <div className={styles.scoreLabel}>Points</div>
+          </motion.div>
+          <motion.div
+            className={styles.scoreLabel}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.2, delay: 0.65, ease: "easeOut" }}
+          >
+            Points
           </motion.div>
         </>
       )}
