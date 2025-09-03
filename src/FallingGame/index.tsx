@@ -79,10 +79,12 @@ const Index = () => {
 
   const handleCloseGame = useCallback(() => {
     setTimeout(() => {
+      audioManager.stopLoop();
+      gameRef.current?.stop();
+      gameRef.current = null;
+      setStarted(false);
+      setGameOver(false);
       sendPostMessage("CLOSE_GAME");
-      // gameRef.current?.stop();
-      // setStarted(false);
-      // setGameOver(false);
     }, 150);
   }, []);
 
@@ -111,13 +113,30 @@ const Index = () => {
     });
   }, []);
 
-  // const handlePauseGame = useCallback(() => {
-  //   gameRef.current?.pause();
-  // }, []);
+  const handlePauseGame = useCallback(() => {
+    gameRef.current?.pause();
+    audioManager.stopLoop();
+  }, []);
 
-  // const handleResumeGame = useCallback(() => {
-  //   gameRef.current?.resume();
-  // }, []);
+  const handleResumeGame = useCallback(() => {
+    gameRef.current?.resume();
+    if (!muted) {
+      audioManager.startLoop("theme");
+    }
+  }, [muted]);
+
+  useEffect(() => {
+    (window as any).handlePauseGame = handlePauseGame;
+    (window as any).handleResumeGame = handleResumeGame;
+    return () => {
+      try {
+        delete (window as any).handlePauseGame;
+        delete (window as any).handleResumeGame;
+      } catch {
+        /* empty */
+      }
+    };
+  }, [handlePauseGame, handleResumeGame]);
 
   return (
     <div className={styles.scene}>
