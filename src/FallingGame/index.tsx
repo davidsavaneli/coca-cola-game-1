@@ -203,14 +203,14 @@ const Index = () => {
       setTries(next);
 
       sendPostMessage("GAME_OVER", encryptScore(score, ENCRYPT_KEY));
-      // Stop theme loop and play gameover via Web Audio
+      // Stop theme loop and, if not muted, play gameover via Web Audio
       audioManager.stopLoop();
-      audioManager.play("gameover");
+      if (!muted) audioManager.play("gameover");
 
       gameRef.current?.stop();
       gameRef.current = null;
     }
-  }, [gameOver, score]);
+  }, [gameOver, score, muted]);
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
