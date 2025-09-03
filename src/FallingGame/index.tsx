@@ -11,7 +11,7 @@ import styles from "./styles.module.css";
 
 import logoSrc from "./assets/images/logo.svg";
 import { audioManager } from "./audio/AudioManager";
-import { useGameSetup, useCatchSoundListener } from "./hooks.ts";
+import { useAssets, useTries, useCatchSound } from "./hooks/index.ts";
 import { sendPostMessage, encryptScore } from "./helpers.ts";
 
 const Index = () => {
@@ -23,7 +23,8 @@ const Index = () => {
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
 
-  const { assetsLoaded, config, noAttempts, decrementTries } = useGameSetup();
+  const { assetsLoaded, config } = useAssets();
+  const { noAttempts, decrementTries } = useTries();
 
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
@@ -33,7 +34,7 @@ const Index = () => {
     []
   );
 
-  useCatchSoundListener(muted);
+  useCatchSound(muted);
 
   useEffect(() => {
     if (!started || gameOver) return;
