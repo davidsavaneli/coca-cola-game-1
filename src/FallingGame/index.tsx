@@ -11,7 +11,7 @@ import styles from "./styles.module.css";
 
 import logoSrc from "./assets/images/logo.svg";
 import { audioManager } from "./audio/AudioManager";
-import { useGameSetup } from "./hooks.ts";
+import { useGameSetup, useCatchSoundListener } from "./hooks.ts";
 import { sendPostMessage, encryptScore } from "./helpers.ts";
 
 const Index = () => {
@@ -22,7 +22,6 @@ const Index = () => {
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
-  const lastCatchPlayAtRef = useRef<number>(0);
 
   const { assetsLoaded, config, noAttempts, decrementTries } = useGameSetup();
 
@@ -34,19 +33,7 @@ const Index = () => {
     []
   );
 
-  useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      if (e?.data?.event === "CATCH_ITEM_SOUND") {
-        if (muted || !audioManager.isSupported()) return;
-        const now = performance.now();
-        if (now - lastCatchPlayAtRef.current < 80) return;
-        lastCatchPlayAtRef.current = now;
-        audioManager.play("catch");
-      }
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [muted]);
+  useCatchSoundListener(muted);
 
   useEffect(() => {
     if (!started || gameOver) return;

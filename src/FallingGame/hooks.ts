@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { GameConfig } from "./types";
 import { audioManager } from "./audio/AudioManager";
 import { sendPostMessage } from "./helpers.ts";
@@ -180,6 +180,23 @@ export function useTries(storageKey: string = DEFAULT_KEY) {
   const noAttempts = tries <= 0;
 
   return { tries, noAttempts, decrementTries, setTries, resetTries } as const;
+}
+
+// Catch sound listener hook (throttled)
+export function useCatchSoundListener(muted: boolean, throttleMs: number = 80) {
+  const lastAtRef = useRef(0);
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e?.data?.event !== "CATCH_ITEM_SOUND") return;
+      if (muted || !audioManager.isSupported()) return;
+      const now = performance.now();
+      if (now - lastAtRef.current < throttleMs) return;
+      lastAtRef.current = now;
+      audioManager.play("catch");
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [muted, throttleMs]);
 }
 
 // Combined convenience hook
