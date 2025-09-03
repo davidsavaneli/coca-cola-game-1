@@ -465,5 +465,3 @@ export class Game {
     }
   }
 }
-
-// sendPostMessage centralized in helper.ts
