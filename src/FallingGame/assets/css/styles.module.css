@@ -193,7 +193,6 @@ p {
 .howToPlayBtn,
 .closeGameBtn {
   position: absolute;
-  bottom: 132px;
   bottom: 14%;
   left: 0;
   right: 0;
@@ -217,10 +216,10 @@ p {
 
 .muteUnmuteIcon {
   position: absolute;
-  bottom: 60px;
   bottom: 6.2%;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: auto;
   width: 40px;
   height: 40px;
   object-fit: contain;
