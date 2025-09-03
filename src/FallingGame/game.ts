@@ -250,11 +250,14 @@ export class Game {
 
     // --- FIX #1: Time-based basket movement for consistent feel on all refresh rates ---
     const smoothingFactor = 15; // Adjust this value for snappier/smoother movement
-    this.basket.x += (this.basket.targetX - this.basket.x) * smoothingFactor * dt;
+    this.basket.x +=
+      (this.basket.targetX - this.basket.x) * smoothingFactor * dt;
 
     // Time & speed
     this.timer += dt;
-    this.gameSpeed = this.config.gameSpeed.base + this.timer / this.config.gameSpeed.accelerationFactor;
+    this.gameSpeed =
+      this.config.gameSpeed.base +
+      this.timer / this.config.gameSpeed.accelerationFactor;
 
     // Items
     this.items.forEach((it) => (it.y += it.speed * this.gameSpeed * dt));
@@ -286,7 +289,8 @@ export class Game {
 
   spawnItems(dtMs: number) {
     this.spawnTimer += dtMs / 1000;
-    const spawnInterval = 1 / (this.gameSpeed * this.config.item.spawnIntervalFactor);
+    const spawnInterval =
+      1 / (this.gameSpeed * this.config.item.spawnIntervalFactor);
     if (this.spawnTimer <= spawnInterval) return;
 
     this.spawnTimer = 0;
@@ -317,18 +321,24 @@ export class Game {
     }
   }
 
-  checkCollisions(dt: number) { // Receive dt as an argument
+  checkCollisions(dt: number) {
+    // Receive dt as an argument
     // --- FIX #3: More efficient array removal using a reverse loop and splice ---
     for (let i = this.items.length - 1; i >= 0; i--) {
       const it = this.items[i];
       const itemBottom = it.y + it.height;
       const basketTop = this.basket.y;
-      
+
       // --- FIX #2: Time-based collision check to prevent "tunneling" on low FPS ---
       const itemPreviousBottom = itemBottom - it.speed * this.gameSpeed * dt;
-      const isTouchingTop = itemBottom >= basketTop && itemPreviousBottom < basketTop;
+      const isTouchingTop =
+        itemBottom >= basketTop && itemPreviousBottom < basketTop;
 
-      const overlap = Math.max(0, Math.min(it.x + it.width, this.basket.x + this.basket.width) - Math.max(it.x, this.basket.x));
+      const overlap = Math.max(
+        0,
+        Math.min(it.x + it.width, this.basket.x + this.basket.width) -
+          Math.max(it.x, this.basket.x)
+      );
       const halfInside = overlap >= it.width / 2;
 
       if (isTouchingTop && halfInside) {
@@ -336,7 +346,7 @@ export class Game {
           this.gameOver();
           continue; // Keep bomb to render momentarily
         }
-        
+
         this.score += it.value;
         this.floatingTexts.push({
           x: it.x + it.width / 2,
@@ -364,7 +374,10 @@ export class Game {
       }
 
       if (it.type === "point" && it.y > this.canvasCssHeight) {
-        this.score = Math.max(0, this.score - (it.deduct ?? this.config.item.defaultDeduct));
+        this.score = Math.max(
+          0,
+          this.score - (it.deduct ?? this.config.item.defaultDeduct)
+        );
         this.items.splice(i, 1); // Remove missed item
       }
     }
@@ -385,7 +398,10 @@ export class Game {
     // --- FIX #1: handleDrag now only sets the target, update() handles the movement ---
     this.basket.targetX = Math.max(
       0,
-      Math.min(x - this.basket.width / 2, this.canvasCssWidth - this.basket.width)
+      Math.min(
+        x - this.basket.width / 2,
+        this.canvasCssWidth - this.basket.width
+      )
     );
   }
 
@@ -438,7 +454,13 @@ export class Game {
       const ratio = this.basketImage.width / this.basketImage.height;
       const dw = this.basket.width;
       const dh = dw / ratio;
-      ctx.drawImage(this.basketImage, this.basket.x | 0, this.basket.y | 0, dw, dh);
+      ctx.drawImage(
+        this.basketImage,
+        this.basket.x | 0,
+        this.basket.y | 0,
+        dw,
+        dh
+      );
     }
 
     // Floating text
