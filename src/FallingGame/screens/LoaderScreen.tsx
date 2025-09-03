@@ -1,4 +1,4 @@
-import styles from "../styles.module.css";
+import styles from "../assets/css/styles.module.css";
 
 const LoadingScreen = () => (
   <div className={styles.loadingScreen}>

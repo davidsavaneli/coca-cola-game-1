@@ -1,9 +1,11 @@
-import styles from "../styles.module.css";
+import { motion } from "framer-motion";
+
+import styles from "../assets/css/styles.module.css";
+
 import playAgainIconSrc from "../assets/images/play-again-icon.svg";
 import wellPlayedSrc from "../assets/images/well-played.webp";
 import glowEffectSrc from "../assets/images/glow-effect.png";
-import noAttemptsIconSrc from "../assets/images/no-attempts-icon.svg"; // <-- added no attempts icon
-import { motion } from "framer-motion";
+import noAttemptsIconSrc from "../assets/images/no-attempts-icon.svg";
 
 interface Props {
   noAttempts?: boolean;

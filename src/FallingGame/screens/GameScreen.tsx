@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
-import styles from "../styles.module.css";
 import { motion } from "framer-motion";
+
+import styles from "../assets/css/styles.module.css";
 
 interface Props {
   canvasRef: RefObject<HTMLCanvasElement>;

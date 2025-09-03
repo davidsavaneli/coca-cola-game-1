@@ -1,24 +1,29 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Game } from "./game";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { Game } from "./game";
 import LoadingScreen from "./screens/LoaderScreen";
 import StartGameScreen from "./screens/StartGameScreen";
 import GameScreen from "./screens/GameScreen";
 import GameOverScreen from "./screens/GameOverScreen";
+import {
+  useAssets,
+  useTries,
+  useCatchSound,
+  useGlobalGameControls,
+} from "./hooks/index.ts";
+import { sendPostMessage, encryptScore } from "./helpers.ts";
+import { audioManager } from "./audio/AudioManager";
 
-import styles from "./styles.module.css";
+import styles from "./assets/css/styles.module.css";
 
 import logoSrc from "./assets/images/logo.svg";
-import { audioManager } from "./audio/AudioManager";
-import { useAssets, useTries, useCatchSound } from "./hooks/index.ts";
-import { sendPostMessage, encryptScore } from "./helpers.ts";
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
-  const [muted, setMuted] = useState<boolean>(true);
 
+  const [muted, setMuted] = useState<boolean>(true);
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
@@ -126,18 +131,7 @@ const Index = () => {
     }
   }, [muted]);
 
-  useEffect(() => {
-    (window as any).handlePauseGame = handlePauseGame;
-    (window as any).handleResumeGame = handleResumeGame;
-    return () => {
-      try {
-        delete (window as any).handlePauseGame;
-        delete (window as any).handleResumeGame;
-      } catch {
-        /* empty */
-      }
-    };
-  }, [handlePauseGame, handleResumeGame]);
+  useGlobalGameControls(handlePauseGame, handleResumeGame);
 
   return (
     <div className={styles.scene}>

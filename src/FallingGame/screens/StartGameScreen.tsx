@@ -1,8 +1,10 @@
-import styles from "../styles.module.css";
-import playIconSrc from "../assets/images/play-btn-icon.svg";
 import { motion } from "framer-motion";
+
+import playIconSrc from "../assets/images/play-btn-icon.svg";
 import soundOnIconSrc from "../assets/images/sound-on-icon.svg";
 import soundOffIconSrc from "../assets/images/sound-off-icon.svg";
+
+import styles from "../assets/css/styles.module.css";
 
 interface Props {
   onStart: () => void;
