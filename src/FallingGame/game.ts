@@ -11,7 +11,6 @@ export class Game {
   basket: Basket;
   items: Item[] = [];
   floatingTexts: FloatingText[] = [];
-  // Track caught item animations (drop + fade-out)
   private caughtAnims: {
     x: number;
     y: number;
@@ -83,7 +82,8 @@ export class Game {
     }) => void
   ) {
     this.canvas = canvas;
-    // Hint the browser for lower-latency canvas swaps in WebView environments
+    // The 'desynchronized' hint can reduce latency on some platforms,
+    // but may cause visual tearing. It's not a fix for core animation logic.
     this.ctx = canvas.getContext("2d", {
       desynchronized: true,
     } as any) as CanvasRenderingContext2D | null;
@@ -92,7 +92,6 @@ export class Game {
 
     this.gameSpeed = this.config.gameSpeed.base;
 
-    // Basket
     this.basket = {
       x: 0,
       y: 0,
@@ -102,10 +101,7 @@ export class Game {
       basketImage: this.config.basket.basketImage,
     };
 
-    // Images
     this.basketImage = this.getImage(this.basket.basketImage);
-
-    // Prepare audio elements
 
     this.setupCanvas();
     this.reset();
@@ -141,7 +137,6 @@ export class Game {
   gameOver() {
     if (this.isGameOver) return;
     this.isGameOver = true;
-    // Disable input immediately on game over
     this.canvas.removeEventListener("touchstart", this.handleTouchStart);
     this.canvas.removeEventListener("touchmove", this.handleTouchMove);
     this.canvas.removeEventListener("touchend", this.handleTouchEnd);
@@ -172,13 +167,15 @@ export class Game {
 
   // Internals -------------------------------------------------
   private startLoop() {
+    // Initialize lastTime here to prevent a large dt on the first frame
     this.lastTime = performance.now();
     const step = (t: number) => {
       if (this.isPaused || this.isGameOver) {
         this.rafId = null;
         return;
       }
-      const dt = t - this.lastTime;
+      // --- CHANGE: Clamping dt to avoid physics bugs if the tab is inactive for a long time ---
+      const dt = Math.min(100, t - this.lastTime); // Clamp at 100ms (10 FPS)
       this.lastTime = t;
       this.update(dt);
       this.draw();
@@ -222,11 +219,10 @@ export class Game {
 
     this.canvas.width = width * dpr;
     this.canvas.height = height * dpr;
-    this.canvas.style.width = width + "px";
-    this.canvas.style.height = height + "px";
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
     if (this.ctx) {
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // Prefer speed over quality to keep frames steady on mobile WebViews
       this.ctx.imageSmoothingEnabled = true;
       if ("imageSmoothingQuality" in this.ctx) {
         (this.ctx as any).imageSmoothingQuality = "low";
@@ -250,9 +246,12 @@ export class Game {
   update(dtMs: number) {
     if (this.isPaused || this.isGameOver) return;
 
-    const dt = dtMs / 1000;
-    // Smooth basket
-    this.basket.x += (this.basket.targetX - this.basket.x) * 0.1;
+    const dt = dtMs / 1000; // Convert delta time to seconds for physics calculations
+
+    // --- FIX #1: Time-based basket movement for consistent feel on all refresh rates ---
+    const smoothingFactor = 15; // Adjust this value for snappier/smoother movement
+    this.basket.x +=
+      (this.basket.targetX - this.basket.x) * smoothingFactor * dt;
 
     // Time & speed
     this.timer += dt;
@@ -270,7 +269,7 @@ export class Game {
       return p.alpha > 0;
     });
 
-    this.checkCollisions();
+    this.checkCollisions(dt); // Pass dt to collision check
 
     // Advance caught item animations
     this.caughtAnims = this.caughtAnims.filter((a) => {
@@ -322,13 +321,18 @@ export class Game {
     }
   }
 
-  checkCollisions() {
-    this.items = this.items.filter((it) => {
+  checkCollisions(dt: number) {
+    // Receive dt as an argument
+    // --- FIX #3: More efficient array removal using a reverse loop and splice ---
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      const it = this.items[i];
       const itemBottom = it.y + it.height;
       const basketTop = this.basket.y;
+
+      // --- FIX #2: Time-based collision check to prevent "tunneling" on low FPS ---
+      const itemPreviousBottom = itemBottom - it.speed * this.gameSpeed * dt;
       const isTouchingTop =
-        itemBottom >= basketTop &&
-        itemBottom - it.speed * this.gameSpeed * (1 / 60) < basketTop;
+        itemBottom >= basketTop && itemPreviousBottom < basketTop;
 
       const overlap = Math.max(
         0,
@@ -340,9 +344,9 @@ export class Game {
       if (isTouchingTop && halfInside) {
         if (it.type === "bomb") {
           this.gameOver();
-          return true; // keep bomb to render momentarily
+          continue; // Keep bomb to render momentarily
         }
-        // Score and visual feedback
+
         this.score += it.value;
         this.floatingTexts.push({
           x: it.x + it.width / 2,
@@ -365,47 +369,46 @@ export class Game {
             duration: 200, // ms
           });
         }
-        return false; // remove collected item from active list
+        this.items.splice(i, 1); // Remove collected item
+        continue;
       }
 
-      if (it.type === "point" && it.y > this.canvasCssHeight + it.height) {
+      if (it.type === "point" && it.y > this.canvasCssHeight) {
         this.score = Math.max(
           0,
           this.score - (it.deduct ?? this.config.item.defaultDeduct)
         );
-        return false;
+        this.items.splice(i, 1); // Remove missed item
       }
-
-      return true;
-    });
+    }
   }
 
   removeOffScreenItems() {
-    this.items = this.items.filter(
-      (it) => it.type === "bomb" || it.y < this.canvasCssHeight + it.height
-    );
+    // --- FIX #3: More efficient array removal ---
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      const it = this.items[i];
+      if (it.type !== "bomb" && it.y > this.canvasCssHeight + it.height) {
+        this.items.splice(i, 1);
+      }
+    }
   }
 
   // Input -----------------------------------------------------
   handleDrag(x: number) {
-    const target = Math.max(
+    // --- FIX #1: handleDrag now only sets the target, update() handles the movement ---
+    this.basket.targetX = Math.max(
       0,
       Math.min(
         x - this.basket.width / 2,
         this.canvasCssWidth - this.basket.width
       )
     );
-    this.basket.x += (target - this.basket.x) * 0.2;
-    this.basket.targetX = target;
   }
 
   // Easing helpers for animations
   private easeOutQuad(p: number) {
     return 1 - (1 - p) * (1 - p);
   }
-
-  // Audio helpers --------------------------------------------
-  // Audio removed: no-op stubs retained for clarity (none)
 
   // Rendering -------------------------------------------------
   draw() {
@@ -420,18 +423,19 @@ export class Game {
         const ratio = it.imageElement.width / it.imageElement.height;
         const dw = it.width;
         const dh = dw / ratio;
-        ctx.drawImage(it.imageElement, it.x, it.y, dw, dh);
+        // --- OPTIMIZATION: Use integer coordinates for faster rendering ---
+        ctx.drawImage(it.imageElement, it.x | 0, it.y | 0, dw, dh);
       }
     }
 
-    // Caught item animations (drop + fade-out)
+    // Caught item animations
     for (const a of this.caughtAnims) {
       const img = a.imageElement;
       if (!img.complete) continue;
       const p = Math.min(1, a.t / a.duration);
-      const alpha = 1 - p; // fade out
-      const scale = 1 - 0.4 * this.easeOutQuad(p); // scale down from 1 -> ~0.6
-      const lift = 25 * this.easeOutQuad(p); // progressive downward motion
+      const alpha = 1 - p;
+      const scale = 1 - 0.4 * this.easeOutQuad(p);
+      const lift = 25 * this.easeOutQuad(p);
 
       const ratio = img.width / img.height;
       const dw = a.width;
@@ -439,10 +443,9 @@ export class Game {
 
       ctx.save();
       ctx.globalAlpha = alpha;
-      // Translate to center, apply scale and progressive downward shift
-      ctx.translate(a.x + dw / 2, a.y + dh / 2 + lift);
+      ctx.translate((a.x + dw / 2) | 0, (a.y + dh / 2 + lift) | 0);
       ctx.scale(scale, scale);
-      ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+      ctx.drawImage(img, (-dw / 2) | 0, (-dh / 2) | 0, dw, dh);
       ctx.restore();
     }
 
@@ -451,17 +454,24 @@ export class Game {
       const ratio = this.basketImage.width / this.basketImage.height;
       const dw = this.basket.width;
       const dh = dw / ratio;
-      ctx.drawImage(this.basketImage, this.basket.x, this.basket.y, dw, dh);
+      ctx.drawImage(
+        this.basketImage,
+        this.basket.x | 0,
+        this.basket.y | 0,
+        dw,
+        dh
+      );
     }
 
     // Floating text
+    ctx.save();
+    ctx.fillStyle = "#6ACE7F";
+    ctx.font = "700 16px 'Agdasima', sans-serif";
+    ctx.textAlign = "center";
     for (const p of this.floatingTexts) {
       ctx.globalAlpha = p.alpha;
-      ctx.fillStyle = "#6ACE7F";
-      ctx.font = "700 16px 'Agdasima', sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(p.text, p.x, p.y);
-      ctx.globalAlpha = 1;
+      ctx.fillText(p.text, p.x | 0, p.y | 0);
     }
+    ctx.restore();
   }
 }
