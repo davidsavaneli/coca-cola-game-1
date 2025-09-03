@@ -1,4 +1,5 @@
 import type { FloatingText, Basket, Item, GameConfig } from "./types";
+import { sendPostMessage } from "./helpers.ts";
 
 export class Game {
   // Rendering
@@ -350,8 +351,8 @@ export class Game {
           alpha: 1,
           lifetime: 1000,
         });
-  // emit catch sound event (handled in React via Web Audio)
-  sendPostMessage("CATCH_ITEM_SOUND");
+
+        sendPostMessage("CATCH_ITEM_SOUND");
 
         if (it.imageElement) {
           this.caughtAnims.push({
@@ -372,8 +373,6 @@ export class Game {
           0,
           this.score - (it.deduct ?? this.config.item.defaultDeduct)
         );
-        // Emit a drop sound only once per miss
-        sendPostMessage("DROP_ITEM_SOUND");
         return false;
       }
 
@@ -467,7 +466,4 @@ export class Game {
   }
 }
 
-// Local helper to communicate with host/container
-const sendPostMessage = (eventName: string, payload: any = null) => {
-  window.postMessage({ event: eventName, payload });
-};
+// sendPostMessage centralized in helper.ts

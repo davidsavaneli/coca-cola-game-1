@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Game } from "./game";
 import { motion, AnimatePresence } from "framer-motion";
-import CryptoJS from "crypto-js";
 
 import LoadingScreen from "./screens/LoaderScreen";
 import StartGameScreen from "./screens/StartGameScreen";
@@ -11,35 +10,21 @@ import GameOverScreen from "./screens/GameOverScreen";
 import styles from "./styles.module.css";
 
 import logoSrc from "./assets/images/logo.svg";
-import playIconSrc from "./assets/images/play-btn-icon.svg";
-import playAgainIconSrc from "./assets/images/play-again-icon.svg";
-import type { GameConfig } from "./types";
-import gameOverSoundUrl from "./assets/sounds/game_over.mp3";
-import gameThemeSoundUrl from "./assets/sounds/game_theme_sound.mp3";
 import { audioManager } from "./audio/AudioManager";
-import catchSoundUrl from "./assets/sounds/catch_sound.mp3";
-// catch item sound removed
+import { useGameSetup } from "./hooks.ts";
+import { sendPostMessage, encryptScore } from "./helpers.ts";
 
 const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
-  // <audio> tags removed; use Web Audio via AudioManager
-  // catch item sound removed
   const [muted, setMuted] = useState<boolean>(true);
 
-  const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
-  const [config, setConfig] = useState<GameConfig | null>(null);
-  const [tries, setTries] = useState<number>(() => {
-    const raw = localStorage.getItem("tryCount");
-    return raw ? parseInt(raw, 10) || 0 : 0;
-  });
-
-  // hiddenAudioStyle unused anymore (no <audio>)
-  // WebAudio catch sound via AudioManager
   const lastCatchPlayAtRef = useRef<number>(0);
+
+  const { assetsLoaded, config, noAttempts, decrementTries } = useGameSetup();
 
   const handleUpdateState = useCallback(
     ({ score, gameOver }: { score: number; gameOver: boolean }) => {
@@ -50,120 +35,11 @@ const Index = () => {
   );
 
   useEffect(() => {
-    let cancelled = false;
-
-    type ApiResponse = {
-      isError: boolean;
-      errorMessage: string | null;
-      response: GameConfig;
-    };
-
-    const sanitizeConfig = (raw: GameConfig): GameConfig => ({
-      ...raw,
-      basket: { ...raw.basket },
-      item: {
-        ...raw.item,
-        items: raw.item.items.map((it) => ({
-          ...it,
-          deduct: (it as any).deduct == null ? undefined : it.deduct,
-        })),
-      },
-      gameSpeed: { ...raw.gameSpeed },
-    });
-
-    const preloadImages = (urls: string[]) =>
-      Promise.all(
-        urls.map(
-          (url) =>
-            new Promise<void>((resolve) => {
-              const img = new Image();
-              img.crossOrigin = "anonymous";
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
-              img.src = url;
-            })
-        )
-      ).then(() => void 0);
-
-    const preload = async () => {
-      let effectiveConfig: GameConfig | null = null;
-      try {
-        const res = await fetch(CONFIG_URL, { cache: "no-store" });
-        if (res.ok) {
-          const data: ApiResponse = await res.json();
-          if (!data.isError && data.response) {
-            effectiveConfig = sanitizeConfig(data.response);
-            if (!cancelled) setConfig(effectiveConfig);
-          }
-        }
-        if (!res.ok) {
-          sendPostMessage("CONFIG_ERROR");
-          return;
-        }
-      } catch {
-        // ignore fetch errors; without remote config we won't start the game
-      }
-
-      if (!effectiveConfig) {
-        // Without remote config, keep showing the loader
-        return;
-      }
-
-      const urls = new Set<string>();
-      urls.add(logoSrc);
-      urls.add(playIconSrc);
-      urls.add(playAgainIconSrc);
-      urls.add(effectiveConfig.backgroundImage);
-      urls.add(effectiveConfig.basket.basketImage);
-      effectiveConfig.item.items.forEach((it) => urls.add(it.image));
-
-      await preloadImages([...urls]);
-
-      try {
-        const sizes = Array.from(new Set([14, 16, 20, 24, 30, 56])).map(
-          (n) => `${n}px`
-        );
-        await Promise.all(
-          sizes.flatMap((sz) => [
-            document.fonts.load(`700 ${sz} 'Agdasima'`),
-            document.fonts.load(`900 ${sz} 'Nunito'`),
-            document.fonts.load(`600 ${sz} 'Nunito'`),
-          ])
-        );
-        await document.fonts.ready;
-      } catch {
-        // ignore font load errors
-      }
-
-      // Preload Web Audio assets (theme, gameover, catch)
-      try {
-        if (audioManager.isSupported()) {
-          await audioManager.load([
-            { name: "catch", url: catchSoundUrl },
-            { name: "theme", url: gameThemeSoundUrl },
-            { name: "gameover", url: gameOverSoundUrl },
-          ]);
-        }
-      } catch {
-        // ignore audio preload errors
-      }
-
-      if (!cancelled) setAssetsLoaded(true);
-    };
-
-    preload();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Listen for catch item event and play via Web Audio (no <audio> tag churn)
-  useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e?.data?.event === "CATCH_ITEM_SOUND") {
         if (muted || !audioManager.isSupported()) return;
         const now = performance.now();
-        if (now - lastCatchPlayAtRef.current < 80) return; // light throttle
+        if (now - lastCatchPlayAtRef.current < 80) return;
         lastCatchPlayAtRef.current = now;
         audioManager.play("catch");
       }
@@ -171,12 +47,6 @@ const Index = () => {
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, [muted]);
-
-  // drop sound removed
-
-  // No <audio> to cleanup
-
-  // catch item sound removed
 
   useEffect(() => {
     if (!started || gameOver) return;
@@ -196,27 +66,21 @@ const Index = () => {
 
   useEffect(() => {
     if (gameOver) {
-      // decrement tries on every game over
-      const current = parseInt(localStorage.getItem("tryCount") || "0", 10);
-      const next = Math.max(0, (Number.isFinite(current) ? current : 0) - 1);
-      localStorage.setItem("tryCount", String(next));
-      setTries(next);
+      decrementTries(1);
 
-      sendPostMessage("GAME_OVER", encryptScore(score, ENCRYPT_KEY));
-      // Stop theme loop and, if not muted, play gameover via Web Audio
+      sendPostMessage("GAME_OVER", encryptScore(score));
+
       audioManager.stopLoop();
       if (!muted) audioManager.play("gameover");
 
       gameRef.current?.stop();
       gameRef.current = null;
     }
-  }, [gameOver, score, muted]);
+  }, [gameOver, score, muted, decrementTries]);
 
   const handleStartGame = useCallback(() => {
     setTimeout(() => {
-      // Unlock/resume Web Audio on user gesture for iOS
       void audioManager.resume();
-      // Start theme loop if not muted (user gesture)
       if (!muted) {
         audioManager.startLoop("theme");
       }
@@ -241,7 +105,6 @@ const Index = () => {
       gameRef.current?.start();
       setGameOver(false);
       setStarted(true);
-      // Resume theme if not muted
       if (!muted) {
         audioManager.startLoop("theme");
       }
@@ -271,7 +134,6 @@ const Index = () => {
 
   return (
     <div className={styles.scene}>
-      {/* drop sound removed */}
       {config && (
         <img src={config.backgroundImage} alt="" className={styles.bgImage} />
       )}
@@ -316,7 +178,7 @@ const Index = () => {
         <StartGameScreen
           onStart={handleStartGame}
           onHowToPlay={() => sendPostMessage("HOW_TO_PLAY")}
-          noAttempts={tries <= 0}
+          noAttempts={noAttempts}
           muted={muted}
           onToggleMute={handleToggleMute}
         />
@@ -324,7 +186,7 @@ const Index = () => {
         <GameOverScreen
           onRestart={handleRestartGame}
           onCloseGame={handleCloseGame}
-          noAttempts={tries <= 0}
+          noAttempts={noAttempts}
         />
       ) : (
         <GameScreen canvasRef={canvasRef} />
@@ -334,14 +196,3 @@ const Index = () => {
 };
 
 export default Index;
-
-const CONFIG_URL = import.meta.env.VITE_GAME_CONFIG_URL;
-const ENCRYPT_KEY = import.meta.env.VITE_ENCRYPT_KEY;
-
-const encryptScore = (score: number, key: string): string => {
-  return CryptoJS.AES.encrypt(score.toString(), key).toString();
-};
-
-const sendPostMessage = (eventName: string, payload: any = null) => {
-  window.postMessage({ event: eventName, payload: payload });
-};
