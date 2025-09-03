@@ -42,6 +42,10 @@ const Index = () => {
   useCatchSound(muted);
 
   useEffect(() => {
+    if (assetsLoaded) sendPostMessage("GAME_LOADED");
+  }, [assetsLoaded]);
+
+  useEffect(() => {
     if (!started || gameOver) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
