@@ -17,7 +17,6 @@ export interface Item {
   y: number;
   width: number;
   height: number;
-  /** 1 = bomb, 2 = point */
   type: ItemType;
   value: number;
   image: string;
@@ -49,8 +48,7 @@ export interface GameConfig {
     spawnIntervalFactor: number;
     defaultDeduct: number;
     items: {
-  /** 1 = bomb, 2 = point */
-  type: ItemType;
+      type: ItemType;
       value: number;
       image: string;
       speed: number;
