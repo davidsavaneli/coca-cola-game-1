@@ -5,12 +5,12 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-  <HashRouter>
+    <HashRouter>
       <Routes>
         <Route path="/games/catchit/:gameId" element={<App />} />
         <Route path="/" element={<App />} />
         <Route path="/test" element={<>test</>} />
       </Routes>
-  </HashRouter>
+    </HashRouter>
   </StrictMode>
 );
