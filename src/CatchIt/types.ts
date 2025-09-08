@@ -6,12 +6,19 @@ export interface FloatingText {
   lifetime: number;
 }
 
+export const ItemType = {
+  Bomb: 1,
+  Point: 2,
+} as const;
+export type ItemType = (typeof ItemType)[keyof typeof ItemType];
+
 export interface Item {
   x: number;
   y: number;
   width: number;
   height: number;
-  type: "point" | "bomb";
+  /** 1 = bomb, 2 = point */
+  type: ItemType;
   value: number;
   image: string;
   imageElement?: HTMLImageElement;
@@ -42,7 +49,8 @@ export interface GameConfig {
     spawnIntervalFactor: number;
     defaultDeduct: number;
     items: {
-      type: "point" | "bomb";
+  /** 1 = bomb, 2 = point */
+  type: ItemType;
       value: number;
       image: string;
       speed: number;

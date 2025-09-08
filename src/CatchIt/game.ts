@@ -1,4 +1,5 @@
 import type { FloatingText, Basket, Item, GameConfig } from "./types";
+import { ItemType } from "./types";
 import { sendPostMessage } from "./helpers.ts";
 
 export class Game {
@@ -342,7 +343,7 @@ export class Game {
       const halfInside = overlap >= it.width / 2;
 
       if (isTouchingTop && halfInside) {
-        if (it.type === "bomb") {
+        if (it.type === ItemType.Bomb) {
           this.gameOver();
           continue; // Keep bomb to render momentarily
         }
@@ -373,7 +374,7 @@ export class Game {
         continue;
       }
 
-      if (it.type === "point" && it.y > this.canvasCssHeight) {
+  if (it.type === ItemType.Point && it.y > this.canvasCssHeight) {
         this.score = Math.max(
           0,
           this.score - (it.deduct ?? this.config.item.defaultDeduct)
@@ -386,8 +387,8 @@ export class Game {
   removeOffScreenItems() {
     // --- FIX #3: More efficient array removal ---
     for (let i = this.items.length - 1; i >= 0; i--) {
-      const it = this.items[i];
-      if (it.type !== "bomb" && it.y > this.canvasCssHeight + it.height) {
+  const it = this.items[i];
+  if (it.type !== ItemType.Bomb && it.y > this.canvasCssHeight + it.height) {
         this.items.splice(i, 1);
       }
     }
