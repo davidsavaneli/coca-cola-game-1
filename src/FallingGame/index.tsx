@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { Game } from "./game";
@@ -21,6 +22,8 @@ import styles from "./assets/css/styles.module.css";
 import logoSrc from "./assets/images/logo.svg";
 
 const Index = () => {
+  const { gameId } = useParams();
+
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const gameRef = useRef<Game | null>(null);
 
@@ -29,7 +32,7 @@ const Index = () => {
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
 
-  const { assetsLoaded, config } = useAssets();
+  const { assetsLoaded, config } = useAssets(gameId);
   const { noAttempts, decrementTries } = useTries();
 
   const handleUpdateState = useCallback(

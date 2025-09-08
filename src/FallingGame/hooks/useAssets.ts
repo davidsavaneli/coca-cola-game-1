@@ -46,7 +46,7 @@ const preloadImages = (urls: string[]) =>
     )
   ).then(() => void 0);
 
-export function useAssets() {
+export function useAssets(gameId?: string) {
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [config, setConfig] = useState<GameConfig | null>(null);
 
@@ -54,9 +54,13 @@ export function useAssets() {
     let cancelled = false;
 
     const run = async () => {
+      if (!gameId) {
+        // Wait for a valid gameId from the route before fetching
+        return;
+      }
       let effectiveConfig: GameConfig | null = null;
       try {
-        const res = await fetch(`${CONFIG_URL}fallingGame?Id=1`, { cache: "no-store" });
+        const res = await fetch(`${CONFIG_URL}${gameId}`, { cache: "no-store" });
         if (res.ok) {
           const data: ApiResponse = await res.json();
           if (!data.isError && data.response) {
@@ -117,7 +121,7 @@ export function useAssets() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [gameId]);
 
   return { assetsLoaded, config } as const;
 }
