@@ -1,24 +1,15 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./CatchIt";
-import { createHashRouter, RouterProvider } from "react-router-dom";
-
-const router = createHashRouter(
-  [
-    {
-      path: "/games/catchit/:gameId",
-      element: <App />,
-    },
-    {
-      path: "/",
-      element: <App />,
-    },
-  ],
-  { future: { v7_startTransition: true } }
-);
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/games/catchit/:gameId" element={<App />} />
+        <Route path="/" element={<App />} />
+      </Routes>
+    </BrowserRouter>
   </StrictMode>
 );
