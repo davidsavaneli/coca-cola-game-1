@@ -99,8 +99,11 @@ const Index = () => {
       setStarted(false);
       setGameOver(false);
       sendPostMessage("CLOSE_GAME");
+      if (!muted) {
+        audioManager.startLoop("theme");
+      }
     }, 150);
-  }, []);
+  }, [muted]);
 
   const handleRestartGame = useCallback(() => {
     setTimeout(() => {
