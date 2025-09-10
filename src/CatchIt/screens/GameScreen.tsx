@@ -9,6 +9,7 @@ interface Props {
 
 const GameScreen = ({ canvasRef }: Props) => (
   <motion.canvas
+    id="gameCanvas"
     ref={canvasRef}
     className={styles.canvas}
     initial={{ opacity: 0 }}
