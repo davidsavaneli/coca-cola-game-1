@@ -88,6 +88,7 @@ export class Game {
     this.ctx = canvas.getContext("2d", {
       desynchronized: true,
     } as any) as CanvasRenderingContext2D | null;
+    // this.ctx = canvas.getContext("2d");
     this.config = config;
     this.onUpdateState = onUpdateState;
 
@@ -374,7 +375,7 @@ export class Game {
         continue;
       }
 
-  if (it.type === ItemType.Point && it.y > this.canvasCssHeight) {
+      if (it.type === ItemType.Point && it.y > this.canvasCssHeight) {
         this.score = Math.max(
           0,
           this.score - (it.deduct ?? this.config.item.defaultDeduct)
@@ -387,8 +388,11 @@ export class Game {
   removeOffScreenItems() {
     // --- FIX #3: More efficient array removal ---
     for (let i = this.items.length - 1; i >= 0; i--) {
-  const it = this.items[i];
-  if (it.type !== ItemType.Bomb && it.y > this.canvasCssHeight + it.height) {
+      const it = this.items[i];
+      if (
+        it.type !== ItemType.Bomb &&
+        it.y > this.canvasCssHeight + it.height
+      ) {
         this.items.splice(i, 1);
       }
     }
