@@ -8,8 +8,6 @@ interface Props {
 }
 
 const GameScreen = ({ canvasRef }: Props) => {
-  console.log("test");
-
   return (
     <motion.canvas
       id="gameCanvas"
