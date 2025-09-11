@@ -88,7 +88,6 @@ export class Game {
     this.ctx = canvas.getContext("2d", {
       desynchronized: true,
     } as any) as CanvasRenderingContext2D | null;
-    // this.ctx = canvas.getContext("2d");
     this.config = config;
     this.onUpdateState = onUpdateState;
 
