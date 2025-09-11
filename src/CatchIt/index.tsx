@@ -130,22 +130,22 @@ const Index = () => {
   }, [muted]);
 
   const handleSetupCanvas = useCallback(() => {
-    setTimeout(() => {
-      // Remove and clear all canvas and initialize again
-      if (gameRef.current) {
-        gameRef.current.stop();
-        gameRef.current = null;
-      }
-      const canvas = canvasRef.current;
-      if (canvas && config) {
-        // Create new game instance
-        const game = new Game(canvas, config, handleUpdateState);
-        gameRef.current = game;
-        game.setupCanvas();
-        game.reset();
-        game.start();
-      }
-    }, 1000);
+    // setTimeout(() => {
+    //   // Remove and clear all canvas and initialize again
+    //   if (gameRef.current) {
+    //     gameRef.current.stop();
+    //     gameRef.current = null;
+    //   }
+    //   const canvas = canvasRef.current;
+    //   if (canvas && config) {
+    //     // Create new game instance
+    //     const game = new Game(canvas, config, handleUpdateState);
+    //     gameRef.current = game;
+    //     game.setupCanvas();
+    //     game.reset();
+    //     game.start();
+    //   }
+    // }, 1000);
   }, [config, handleUpdateState]);
 
   useGlobalGameControls(handlePauseGame, handleResumeGame, handleSetupCanvas);

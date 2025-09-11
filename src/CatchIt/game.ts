@@ -83,12 +83,20 @@ export class Game {
     }) => void
   ) {
     this.canvas = canvas;
-    // The 'desynchronized' hint can reduce latency on some platforms,
-    // but may cause visual tearing. It's not a fix for core animation logic.
-    this.ctx = canvas.getContext("2d", {
-      desynchronized: true,
-    } as any) as CanvasRenderingContext2D | null;
-    // this.ctx = canvas.getContext("2d");
+    // Try to get desynchronized context, fallback to normal if it fails
+    let ctx: CanvasRenderingContext2D | null = null;
+    try {
+      const possibleCtx = canvas.getContext("2d", { desynchronized: true } as any);
+      if (possibleCtx && possibleCtx instanceof CanvasRenderingContext2D) {
+        ctx = possibleCtx;
+      }
+    } catch (e) {
+      ctx = null;
+    }
+    if (!ctx) {
+      ctx = canvas.getContext("2d");
+    }
+    this.ctx = ctx;
     this.config = config;
     this.onUpdateState = onUpdateState;
 
