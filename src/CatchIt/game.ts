@@ -215,6 +215,7 @@ export class Game {
 
   // Layout ----------------------------------------------------
   setupCanvas() {
+    console.log("Setting up canvas");
     const dpr = window.devicePixelRatio || 1;
     const width = document.body.offsetWidth;
     const height = document.body.offsetHeight;

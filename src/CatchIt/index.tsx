@@ -89,6 +89,11 @@ const Index = () => {
       setGameOver(false);
       setStarted(true);
     }, 150);
+    setTimeout(() => {
+      if (gameRef.current) {
+        gameRef.current.setupCanvas();
+      }
+    }, 1000);
   }, [muted]);
 
   const handleCloseGame = useCallback(() => {
@@ -129,7 +134,15 @@ const Index = () => {
     }
   }, [muted]);
 
-  useGlobalGameControls(handlePauseGame, handleResumeGame);
+  const handleSetupCanvas = useCallback(() => {
+    setTimeout(() => {
+      if (gameRef.current) {
+        gameRef.current.setupCanvas();
+      }
+    }, 2000);
+  }, []);
+
+  useGlobalGameControls(handlePauseGame, handleResumeGame, handleSetupCanvas);
 
   const handleToggleMute = useToggleMute(setMuted);
 
