@@ -90,11 +90,14 @@ const Index = () => {
       setStarted(true);
     }, 150);
     setTimeout(() => {
-      if (gameRef.current) {
+      // Only use Game class methods for reinitialization
+      if (gameRef.current && config) {
         gameRef.current.setupCanvas();
+        gameRef.current.reset();
+        gameRef.current.start();
       }
-    }, 1000);
-  }, [muted]);
+    }, 2000);
+  }, [config, muted]);
 
   const handleCloseGame = useCallback(() => {
     setTimeout(() => {
