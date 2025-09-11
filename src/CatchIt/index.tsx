@@ -216,7 +216,8 @@ const Index = () => {
           noAttempts={noAttempts}
         />
       ) : (
-        <GameScreen canvasRef={canvasRef} />
+        // Only render canvas after play button is clicked
+        started && <GameScreen canvasRef={canvasRef} />
       )}
     </div>
   );
