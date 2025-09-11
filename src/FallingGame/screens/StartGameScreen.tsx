@@ -56,7 +56,7 @@ const StartGameScreen = ({
           How to play?
         </motion.div>
       </motion.div>
-      <motion.img
+      {/* <motion.img
         initial={{ opacity: 0, scale: 0.6 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, delay: 0.4, type: "spring" }}
@@ -64,7 +64,7 @@ const StartGameScreen = ({
         alt={muted ? "Sounf off" : "Sound on"}
         className={styles.muteUnmuteIcon}
         onClick={onToggleMute}
-      />
+      /> */}
     </div>
   </>
 );
