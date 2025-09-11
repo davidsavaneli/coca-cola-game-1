@@ -53,6 +53,7 @@ export function useAssets() {
   useEffect(() => {
     let cancelled = false;
 
+    
     const run = async () => {
       let effectiveConfig: GameConfig | null = null;
       try {
