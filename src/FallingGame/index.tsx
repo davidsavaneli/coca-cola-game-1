@@ -76,7 +76,7 @@ const Index = () => {
     const preload = async () => {
       let effectiveConfig: GameConfig | null = null;
       try {
-        const res = await fetch(CONFIG_URL, { cache: "no-store" });
+        const res = await fetch(`${CONFIG_URL}96866834-16f4-4cee-a232-01ae7c45bf58`, { cache: "no-store" });
         if (res.ok) {
           const data: ApiResponse = await res.json();
           if (!data.isError && data.response) {
