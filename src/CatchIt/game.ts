@@ -82,6 +82,7 @@ export class Game {
       gameOver: boolean;
     }) => void
   ) {
+    console.log('Creating game instance');
     this.canvas = canvas;
     // Try to get desynchronized context, fallback to normal if it fails
     let ctx: CanvasRenderingContext2D | null = null;
