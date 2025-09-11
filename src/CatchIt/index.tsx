@@ -96,7 +96,7 @@ const Index = () => {
         gameRef.current.reset();
         gameRef.current.start();
       }
-    }, 2000);
+    }, 3000);
   }, [config, muted]);
 
   const handleCloseGame = useCallback(() => {
