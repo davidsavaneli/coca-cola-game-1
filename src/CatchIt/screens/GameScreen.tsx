@@ -7,15 +7,19 @@ interface Props {
   canvasRef: RefObject<HTMLCanvasElement>;
 }
 
-const GameScreen = ({ canvasRef }: Props) => (
-  <motion.canvas
-    id="gameCanvas"
-    ref={canvasRef}
-    className={styles.canvas}
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-  />
-);
+const GameScreen = ({ canvasRef }: Props) => {
+  console.log("test");
+
+  return (
+    <motion.canvas
+      id="gameCanvas"
+      ref={canvasRef}
+      className={styles.canvas}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+    />
+  );
+};
 
 export default GameScreen;
